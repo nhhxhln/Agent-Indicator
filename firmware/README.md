@@ -1,5 +1,7 @@
 # Agent Indicator 固件(ESP-IDF v5.2)
 
+中文 | [English](README.en.md)
+
 ## 编译烧录
 
 ```bash
@@ -50,6 +52,7 @@ main/
 | `audio_vol <0-100>` / `tone <0-3>` | 音量 / 提示音 |
 | `imu` / `imu_vis [on\|off]` | 单次读取 / 持续可视化(LCD 水平仪+6 轴条,无屏转日志) |
 | `sd [mount\|umount]` / `ls [path]` | SD 卡管理 / 列目录 |
+| `lang [zh\|en]` | UI 语言切换(NVS 持久化) |
 
 ## 任务栈一览(C++ 模块注意事项)
 

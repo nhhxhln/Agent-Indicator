@@ -1,5 +1,8 @@
 # Agent Indicator — 外观与结构设计(4 方案)
 
+> English version: [en/03-industrial-design.md](en/03-industrial-design.md)
+> 3D 模型源文件与可打印 STL:[`hardware/3d/`](../hardware/3d/)(OpenSCAD)
+
 > Rev 0.1。核心设计语言:**Halo 单元** —— LCD(AA 70.13mm 方形)沉于 LED Circle(ID75/OD85)正后方,
 > 环体遮住屏幕四角(AA 对角线 99.2mm > 75mm 孔径),配合圆形 UI,视觉上呈现一块"会发光呼吸的圆屏"。
 > 环到屏面留 3~4mm 段差 + 内壁哑光黑,环光不漏进屏面。
@@ -13,6 +16,8 @@
 
 只含 Halo 单元 + 底座,Usage 画在 LCD 圆形 UI 边缘弧段,Context 以圆环热力图呈现(无 Matrix)。
 适合做"最小可爱款";Matrix 可后期以方案 D 模块磁吸外挂。
+
+![Halo 3D 渲染](images/halo-3d.png)
 
 ```
         正面                          侧面
@@ -39,6 +44,9 @@
 ## 方案 B 「Console」— 横向一体,推荐主力款
 
 全功能一体。左 Matrix、中竖直 Usage 条、右 Halo,底缘通长拾音条,15° 楔形坐姿。
+
+![Console 3D 渲染](images/console-3d.png)
+![Console 正视](images/console-front.png)
 
 ```
    ┌────────────────────────────────────────────┐

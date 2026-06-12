@@ -11,6 +11,7 @@ idf_component_register(
         "comm/comm_usb.c"
         "ui/led_engine.c"
         "ui/display.c"
+        "ui/i18n.c"
         "audio/audio.cpp"
         "power/power.c"
         "drivers/qmi8658.cpp"

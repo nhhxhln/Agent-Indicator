@@ -1,6 +1,6 @@
 # Agent Indicator — 电源方案设计
 
-> Rev 0.1 · 配套 [01-system-design.md](01-system-design.md)
+> Rev 0.2 · English version: [en/02-power-design.md](en/02-power-design.md) · 配套 [01-system-design.md](01-system-design.md)
 
 ## 1. 电源拓扑
 

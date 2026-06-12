@@ -1,6 +1,7 @@
 # Agent Indicator — 系统设计总览
 
-> LLM 状态指示桌搭 · Rev 0.1 · 2026-06
+> LLM 状态指示桌搭 · Rev 0.2 · 2026-06
+> English version: [en/01-system-design.md](en/01-system-design.md)
 > 配套文档:[02-power-design.md](02-power-design.md) 电源 · [03-industrial-design.md](03-industrial-design.md) 外观 · [04-schematic-partition.md](04-schematic-partition.md) 原理图
 
 ## 1. 功能定义
@@ -132,7 +133,7 @@
 | 0x03 | H→D | CONTEXT | `u32 used, u32 total, u8 n, n×{u8 category, u32 tokens}`。category: system/tools/mcp/memory/messages/free |
 | 0x04 | H→D | TEXT | `u8 stream(0 in/1 out), u8 op(0 append/1 replace/2 clear), utf8[]` |
 | 0x05 | H→D | TONE | `u8 tone_id`(0 done / 1 attention / 2 error / 3 boot) |
-| 0x06 | H→D | CONFIG | `u8 key, u32 value`(亮度、matrix 块数 1/4、方向等) |
+| 0x06 | H→D | CONFIG | `u8 key, u32 value`。key: 0 亮度 / 1 matrix 块数(1\|4)/ 2 方向 / 3 UI 语言(0 en, 1 zh) |
 | 0x80 | D→H | TELEMETRY | `u16 vbat_mV ×3cell, i16 ibat_mA, u8 soc, u8 chg_state, u8 src(0 bat/1 pd/2 xt30)` |
 | 0x81 | D→H | INPUT | `u8 kind(0 touch/1 imu_tap/2 imu_shake), u8 arg` |
 | 0x82 | D→H | MIC_LEVEL | `u8 db`(可选订阅) |
@@ -156,7 +157,8 @@ firmware/  ESP-IDF v5.2 工程:comm(三链路)/ proto / ui(matrix·ring·bar·lc
 | 能力 | 实现 | 说明 |
 |---|---|---|
 | 文件系统 | SPIFFS(6MB `storage` 分区 → `/spiffs`)+ microSD(1-bit SDMMC → `/sdcard`,支持热插拔挂载) | LVGL 经 `LV_USE_FS_POSIX` 以盘符 `A:` 直接访问两者 |
-| 矢量字体 | LVGL TinyTTF(`LV_TINY_TTF_FILE_SUPPORT`) | 开机检测 `/spiffs/fonts/ui.ttf`(ttf/otf 均可)自动加载为 UI 字体,缺省回落 Montserrat;中文字体建议放 SD 卡 |
+| 矢量字体 | LVGL TinyTTF(基于 stb_truetype,**非 FreeType**) | 开机检测 `/spiffs/fonts/ui.ttf` 自动加载;支持 .ttf 与 TrueType 轮廓的 .otf,**不支持 CFF/PostScript 轮廓的 .otf**,无 hinting/kerning。需要完整 OTF 时可换 `lv_freetype` + FreeType(约 +600KB) |
+| UI 多语言 | `ui/i18n.c` 中英字符串表,NVS 持久化 | 控制台 `lang zh\|en` 或协议 CONFIG key=3 切换;中文渲染需 CJK TTF(内置 Montserrat 无中文字形) |
 | LVGL | LVGL9 + esp_lvgl_port,双 FB direct mode + bounce buffer 抗撕裂 | LVGL 任务栈 10KB(TinyTTF 栅格化在该任务执行) |
 | 测试控制台 | esp_console REPL @ USB Serial/JTAG | 与 TinyUSB vendor EP 互斥(同一 USB PHY),量产固件二选一 |
 | 测试 case | CAN tx/rx、Audio rec/replay/player_from_sd/rec_to_sd/loopback、IMU 可视化 | C++ 实现(`cases/`),命令清单见 firmware/README;无屏/无外设时自动降级日志模式 |

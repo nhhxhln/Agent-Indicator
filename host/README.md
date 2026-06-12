@@ -1,5 +1,7 @@
 # agentind — 上位机转发软件
 
+中文 | [English](README.en.md)
+
 读取 LLM(Claude Code)状态,按 [协议](../docs/01-system-design.md#5-通讯协议host--device) 编码后经
 Wi-Fi WebSocket / SocketCAN / USB vendor EP 推送到 Agent Indicator。
 

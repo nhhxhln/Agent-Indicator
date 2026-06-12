@@ -169,7 +169,7 @@ class ToneMsg:
 
 @dataclass
 class ConfigMsg:
-    key: int  # 0 brightness / 1 matrix_tiles(1|4) / 2 orientation
+    key: int  # 0 brightness / 1 matrix_tiles(1|4) / 2 orientation / 3 ui language(0 en, 1 zh)
     value: int
 
     def encode(self) -> bytes:

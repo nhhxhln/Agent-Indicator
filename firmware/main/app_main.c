@@ -7,7 +7,9 @@
 #include "comm/comm.h"
 #include "console/app_console.h"
 #include "esp_log.h"
+#include "nvs_flash.h"
 #include "power/power.h"
+#include "ui/i18n.h"
 #include "storage/storage.h"
 #include "ui/display.h"
 #include "ui/led_engine.h"
@@ -19,8 +21,10 @@ void app_main(void)
     ESP_LOGI(TAG, "Agent Indicator boot");
     app_state_init();
 
+    ESP_ERROR_CHECK(nvs_flash_init()); /* comm_wifi 内重复调用无害 */
     ESP_ERROR_CHECK(i2c_bus_init());
     ESP_ERROR_CHECK(storage_init());
+    ui_i18n_init();
 
     ESP_ERROR_CHECK(led_engine_start());
     ESP_ERROR_CHECK(display_start());

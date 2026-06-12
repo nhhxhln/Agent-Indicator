@@ -21,6 +21,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
+#include "ui/i18n.h"
 
 static const char *TAG = "display";
 
@@ -31,6 +32,7 @@ static const char *TAG = "display";
 static bool s_ready = false;
 static lv_display_t *s_disp;
 static lv_obj_t *s_textarea;
+static lv_obj_t *s_status_label;
 static const lv_font_t *s_font;
 
 bool display_ready(void) { return s_ready; }
@@ -160,13 +162,21 @@ static void ui_create(void)
 #endif
     lv_obj_t *scr = lv_screen_active();
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x0a0a12), 0);
+
+    s_status_label = lv_label_create(scr);
+    lv_obj_set_pos(s_status_label, 14, 8);
+    lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x66aaff), 0);
+    lv_obj_set_style_text_font(s_status_label, s_font, 0);
+    lv_label_set_text(s_status_label, tr(STR_WAIT_HOST));
+
     s_textarea = lv_textarea_create(scr);
-    lv_obj_set_size(s_textarea, BOARD_LCD_H_RES - 20, BOARD_LCD_V_RES - 20);
-    lv_obj_center(s_textarea);
+    lv_obj_set_size(s_textarea, BOARD_LCD_H_RES - 20, BOARD_LCD_V_RES - 56);
+    lv_obj_set_pos(s_textarea, 10, 46);
     lv_obj_set_style_bg_color(s_textarea, lv_color_hex(0x0a0a12), 0);
     lv_obj_set_style_text_color(s_textarea, lv_color_hex(0xd0d0e0), 0);
     lv_obj_set_style_text_font(s_textarea, s_font, 0);
     lv_textarea_set_max_length(s_textarea, 4096);
+    lv_textarea_add_text(s_textarea, tr(STR_WELCOME));
     lvgl_port_unlock();
 }
 
@@ -175,7 +185,15 @@ static void text_task(void *arg)
 {
     char buf[257];
     uint8_t stream;
+    agent_state_t last_state = AGENT_STATE_MAX;
     while (1) {
+        /* 状态标签跟随 agent 状态(随当前语言) */
+        if (s_ready && s_status_label && g_app.state != last_state) {
+            last_state = g_app.state;
+            lvgl_port_lock(0);
+            lv_label_set_text(s_status_label, tr_state(last_state));
+            lvgl_port_unlock();
+        }
         int n = app_text_pop(buf, sizeof(buf) - 1, &stream);
         if (n <= 0) {
             vTaskDelay(pdMS_TO_TICKS(20));

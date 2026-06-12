@@ -1,6 +1,7 @@
 # Agent Indicator — 原理图设计与划分
 
-> Rev 0.1。主板一块通吃 4 个外形方案,LED 载板(Matrix/Circle/Bar)为独立简单 PCB 经线缆接入。
+> Rev 0.2 · English version: [en/04-schematic-partition.md](en/04-schematic-partition.md)
+> 主板一块通吃 4 个外形方案,LED 载板(Matrix/Circle/Bar)为独立简单 PCB 经线缆接入。
 
 ## 1. 原理图页面划分(8 页)
 

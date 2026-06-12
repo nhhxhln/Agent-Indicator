@@ -8,6 +8,7 @@
 #include "esp_console.h"
 #include "esp_log.h"
 #include "storage/storage.h"
+#include "ui/i18n.h"
 
 static const char *TAG = "console";
 
@@ -38,6 +39,17 @@ static int cmd_ls(int argc, char **argv)
     return 0;
 }
 
+static int cmd_lang(int argc, char **argv)
+{
+    if (argc >= 2) {
+        if (strcmp(argv[1], "zh") == 0) ui_lang_set(UI_LANG_ZH);
+        else if (strcmp(argv[1], "en") == 0) ui_lang_set(UI_LANG_EN);
+        else { printf("usage: lang [zh|en]\n"); return 1; }
+    }
+    printf("lang=%s\n", ui_lang_get() == UI_LANG_ZH ? "zh" : "en");
+    return 0;
+}
+
 extern "C" void case_storage_register(void)
 {
     const esp_console_cmd_t cmds[] = {
@@ -45,6 +57,8 @@ extern "C" void case_storage_register(void)
           .hint = nullptr, .func = cmd_sd, .argtable = nullptr },
         { .command = "ls", .help = "ls [path] - 列目录(默认 /spiffs)",
           .hint = nullptr, .func = cmd_ls, .argtable = nullptr },
+        { .command = "lang", .help = "lang [zh|en] - UI 语言(NVS 持久化)",
+          .hint = nullptr, .func = cmd_lang, .argtable = nullptr },
     };
     for (auto &c : cmds) ESP_ERROR_CHECK(esp_console_cmd_register(&c));
 }

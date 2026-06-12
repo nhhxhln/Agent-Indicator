@@ -88,6 +88,10 @@ void app_state_apply_frame(uint8_t type, const uint8_t *p, uint16_t len)
             memcpy(&v, p + 1, 4);
             if (p[0] == 0) g_app.brightness = (uint8_t)v;
             if (p[0] == 1 && (v == 1 || v == 4)) g_app.matrix_tiles = (uint8_t)v;
+            if (p[0] == 3 && v <= 1) {
+                extern esp_err_t ui_lang_set(int); /* ui/i18n.c,避免头循环 */
+                ui_lang_set((int)v);
+            }
         }
         break;
     default:
