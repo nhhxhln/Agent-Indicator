@@ -19,6 +19,10 @@ esp_err_t comm_usb_start(void);   /* TinyUSB vendor bulk EP + CDC 日志 */
 
 /* comm 各实现收到有效帧时调用:更新活动链路并转 app_state */
 void comm_on_frame(comm_link_t link, uint8_t type, const uint8_t *payload, uint16_t len);
+
+/* UI Wi-Fi 页接口(comm_wifi.c 实现) */
+void comm_wifi_scan_async(void);                          /* 结果回调 ui_wifi_add_network */
+void comm_wifi_set_credentials(const char *ssid, const char *pass); /* 存 NVS 并重连 */
 /* 设备→host:经活动链路发送(payload 为协议帧 payload,内部各自封装) */
 void comm_send(uint8_t type, const uint8_t *payload, uint16_t len);
 comm_link_t comm_active_link(void);

@@ -133,7 +133,7 @@
 | 0x03 | H→D | CONTEXT | `u32 used, u32 total, u8 n, n×{u8 category, u32 tokens}`。category: system/tools/mcp/memory/messages/free |
 | 0x04 | H→D | TEXT | `u8 stream(0 in/1 out), u8 op(0 append/1 replace/2 clear), utf8[]` |
 | 0x05 | H→D | TONE | `u8 tone_id`(0 done / 1 attention / 2 error / 3 boot) |
-| 0x06 | H→D | CONFIG | `u8 key, u32 value`。key: 0 亮度 / 1 matrix 块数(1\|4)/ 2 方向 / 3 UI 语言(0 en, 1 zh) |
+| 0x06 | H→D | CONFIG | `u8 key, u32 value`。key: 0 亮度 / 1 matrix 块数(1\|4)/ 2 方向 / 3 UI 语言(0 en, 1 zh)/ 4 灯效([15:8]=模式 0-5,[7:0]=速度)/ 5 灯效颜色 0xRRGGBB(先于 key=4 发) |
 | 0x80 | D→H | TELEMETRY | `u16 vbat_mV ×3cell, i16 ibat_mA, u8 soc, u8 chg_state, u8 src(0 bat/1 pd/2 xt30)` |
 | 0x81 | D→H | INPUT | `u8 kind(0 touch/1 imu_tap/2 imu_shake), u8 arg` |
 | 0x82 | D→H | MIC_LEVEL | `u8 db`(可选订阅) |

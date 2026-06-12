@@ -83,6 +83,26 @@ static const httpd_uri_t ws_uri = {
     .uri = "/ws", .method = HTTP_GET, .handler = ws_handler, .is_websocket = true,
 };
 
+/* ---- UI Wi-Fi 页接口 ---- */
+#include "ui/screens/screens.h"
+
+void comm_wifi_scan_async(void)
+{
+    wifi_scan_config_t sc = { 0 };
+    esp_wifi_scan_start(&sc, false); /* 完成事件中取结果 */
+}
+
+void comm_wifi_set_credentials(const char *ssid, const char *pass)
+{
+    wifi_config_t wc = { 0 };
+    strlcpy((char *)wc.sta.ssid, ssid, sizeof(wc.sta.ssid));
+    strlcpy((char *)wc.sta.password, pass, sizeof(wc.sta.password));
+    esp_wifi_disconnect();
+    esp_wifi_set_config(WIFI_IF_STA, &wc); /* 默认存 NVS,重启仍生效 */
+    esp_wifi_connect();
+    ui_wifi_set_status("connecting...");
+}
+
 /* ---- Wi-Fi STA ---- */
 static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
@@ -90,8 +110,22 @@ static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data)
         esp_wifi_connect();
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         s_ws_fd = -1;
+        ui_wifi_set_status("disconnected");
         esp_wifi_connect(); /* 简单重连;量产加退避 */
+    } else if (base == WIFI_EVENT && id == WIFI_EVENT_SCAN_DONE) {
+        uint16_t n = 10;
+        wifi_ap_record_t recs[10];
+        if (esp_wifi_scan_get_ap_records(&n, recs) == ESP_OK) {
+            ui_wifi_clear_networks();
+            for (int i = 0; i < n; i++)
+                ui_wifi_add_network((const char *)recs[i].ssid, recs[i].rssi,
+                                    recs[i].authmode != WIFI_AUTH_OPEN);
+        }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t *evt = (ip_event_got_ip_t *)data;
+        char st[48];
+        snprintf(st, sizeof(st), "connected " IPSTR, IP2STR(&evt->ip_info.ip));
+        ui_wifi_set_status(st);
         ESP_LOGI(TAG, "got ip, ws server ready");
     }
 }

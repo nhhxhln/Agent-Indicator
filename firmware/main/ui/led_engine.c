@@ -55,6 +55,68 @@ static inline rgb_t scale(rgb_t c, uint8_t k)
     return (rgb_t){ c.r * k / 255, c.g * k / 255, c.b * k / 255 };
 }
 
+/* ---- 覆盖灯效(OpenRGB 风格预设) ---- */
+static volatile led_fx_t s_fx = LED_FX_AGENT;
+static rgb_t s_fx_color = { 0, 140, 255 };
+static uint8_t s_fx_speed = 40; /* 1-100 */
+
+void led_engine_set_fx(led_fx_t fx, uint8_t r, uint8_t g, uint8_t b, uint8_t speed)
+{
+    if (fx >= LED_FX_MAX) return;
+    s_fx_color = (rgb_t){ r, g, b };
+    if (speed >= 1 && speed <= 100) s_fx_speed = speed;
+    s_fx = fx;
+}
+
+led_fx_t led_engine_get_fx(void) { return s_fx; }
+
+static rgb_t hue_to_rgb(uint8_t h) /* HSV 色环,S=V=255 */
+{
+    uint8_t seg = h / 43, rem = (h - seg * 43) * 6;
+    uint8_t q = 255 - rem, t_ = rem;
+    switch (seg) {
+    case 0: return (rgb_t){ 255, t_, 0 };
+    case 1: return (rgb_t){ q, 255, 0 };
+    case 2: return (rgb_t){ 0, 255, t_ };
+    case 3: return (rgb_t){ 0, q, 255 };
+    case 4: return (rgb_t){ t_, 0, 255 };
+    default: return (rgb_t){ 255, 0, q };
+    }
+}
+
+/* 将 matrix+aux 视作一条逻辑灯带统一渲染覆盖灯效 */
+static void render_fx(float t, int mleds)
+{
+    int total = mleds + AUX_LEDS;
+    float spd = s_fx_speed / 40.0f;
+    for (int i = 0; i < total; i++) {
+        rgb_t c = { 0, 0, 0 };
+        switch (s_fx) {
+        case LED_FX_SOLID:
+            c = s_fx_color;
+            break;
+        case LED_FX_BREATH: {
+            float k = 0.12f + 0.88f * 0.5f * (1 + sinf(t * 2.0f * spd));
+            c = scale(s_fx_color, (uint8_t)(k * 255));
+            break;
+        }
+        case LED_FX_MARQUEE: {
+            int pos = (int)(t * 24 * spd);
+            c = (((i - pos) % 12 + 12) % 12) < 4 ? s_fx_color
+                                                 : scale(s_fx_color, 18);
+            break;
+        }
+        case LED_FX_RAINBOW:
+            c = hue_to_rgb((uint8_t)(i * 256 / total + (int)(t * 64 * spd)));
+            break;
+        default: /* OFF */
+            break;
+        }
+        if (i < mleds) s_mbuf[i] = c;
+        else s_abuf[i - mleds] = c;
+    }
+}
+
 /* matrix 物理映射:tile 内 S 形扫描,4 块时 2×2 排列(Z 序),链序 = tile0..3 */
 static int matrix_index(int x, int y, int tiles)
 {
@@ -191,12 +253,15 @@ static void led_task(void *arg)
     TickType_t wake = xTaskGetTickCount();
     float t = 0;
     while (1) {
-        render_ring(t);
-        render_usage(t);
-        render_vu();
-        render_matrix(t);
-
         int mleds = BOARD_MATRIX_W * BOARD_MATRIX_H * g_app.matrix_tiles;
+        if (s_fx == LED_FX_AGENT) {
+            render_ring(t);
+            render_usage(t);
+            render_vu();
+            render_matrix(t);
+        } else {
+            render_fx(t, mleds);
+        }
         float lim = current_limit_factor(mleds) * g_app.brightness / 255.0f;
 
         for (int i = 0; i < mleds; i++) {

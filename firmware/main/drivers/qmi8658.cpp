@@ -75,3 +75,14 @@ esp_err_t read(Sample &out)
 }
 
 } // namespace qmi8658
+
+/* C 侧(display.c 设备检测页)接口 */
+extern "C" bool qmi8658_present_c(void) { return qmi8658::present(); }
+
+extern "C" bool qmi8658_read_c(float *ax, float *ay, float *az, float *temp_c)
+{
+    qmi8658::Sample s;
+    if (qmi8658::read(s) != ESP_OK) return false;
+    *ax = s.ax; *ay = s.ay; *az = s.az; *temp_c = s.temp_c;
+    return true;
+}

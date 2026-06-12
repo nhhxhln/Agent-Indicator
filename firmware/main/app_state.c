@@ -12,6 +12,7 @@
 static const char *TAG = "state";
 
 app_state_t g_app;
+uint32_t g_fx_color_cache = 0x0080ff; /* CONFIG key=5 暂存,key=4 时生效 */
 static portMUX_TYPE s_lock = portMUX_INITIALIZER_UNLOCKED;
 static RingbufHandle_t s_text_rb;
 
@@ -92,6 +93,14 @@ void app_state_apply_frame(uint8_t type, const uint8_t *p, uint16_t len)
                 extern esp_err_t ui_lang_set(int); /* ui/i18n.c,避免头循环 */
                 ui_lang_set((int)v);
             }
+            if (p[0] == 4) { /* 灯效: [15:8]=mode [7:0]=speed,颜色取 key=5 缓存 */
+                extern void led_engine_set_fx(int, uint8_t, uint8_t, uint8_t, uint8_t);
+                led_engine_set_fx((int)(v >> 8) & 0xFF,
+                                  (g_fx_color_cache >> 16) & 0xFF,
+                                  (g_fx_color_cache >> 8) & 0xFF,
+                                  g_fx_color_cache & 0xFF, v & 0xFF);
+            }
+            if (p[0] == 5) g_fx_color_cache = v; /* 0xRRGGBB,先于 key=4 下发 */
         }
         break;
     default:

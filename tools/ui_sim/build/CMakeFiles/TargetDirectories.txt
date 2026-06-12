@@ -1,0 +1,17 @@
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/ui_sim.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/edit_cache.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/rebuild_cache.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/list_install_components.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/install.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/install/local.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/CMakeFiles/install/strip.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/lvgl.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/lvgl_thorvg.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/lvgl_examples.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/lvgl_demos.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/edit_cache.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/rebuild_cache.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/list_install_components.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/install.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/install/local.dir
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/build/lvgl_build/CMakeFiles/install/strip.dir

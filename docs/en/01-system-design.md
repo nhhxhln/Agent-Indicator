@@ -134,7 +134,7 @@ All three links listen simultaneously; the most recently active link gets teleme
 | 0x03 | H→D | CONTEXT | `u32 used, u32 total, u8 n, n×{u8 category, u32 tokens}`. category: system/tools/mcp/memory/messages/free |
 | 0x04 | H→D | TEXT | `u8 stream(0 in/1 out), u8 op(0 append/1 replace/2 clear), utf8[]` |
 | 0x05 | H→D | TONE | `u8 tone_id` (0 done / 1 attention / 2 error / 3 boot) |
-| 0x06 | H→D | CONFIG | `u8 key, u32 value`. key: 0 brightness / 1 matrix tiles (1\|4) / 2 orientation / 3 UI language (0 en, 1 zh) |
+| 0x06 | H→D | CONFIG | `u8 key, u32 value`. key: 0 brightness / 1 matrix tiles (1\|4) / 2 orientation / 3 UI language (0 en, 1 zh) / 4 light fx ([15:8]=mode 0-5, [7:0]=speed) / 5 fx color 0xRRGGBB (send before key=4) |
 | 0x80 | D→H | TELEMETRY | `u16 vbat_mV ×3cell, i16 ibat_mA, u8 soc, u8 chg_state, u8 src(0 bat/1 pd/2 xt30)` |
 | 0x81 | D→H | INPUT | `u8 kind(0 touch/1 imu_tap/2 imu_shake), u8 arg` |
 | 0x82 | D→H | MIC_LEVEL | `u8 db` (optional subscription) |

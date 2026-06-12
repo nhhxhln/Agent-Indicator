@@ -9,8 +9,10 @@
 #include <sys/stat.h>
 
 #include "app_state.h"
+#include "audio/audio.h"
 #include "board.h"
 #include "bus/i2c_bus.h"
+#include "comm/comm.h"
 #include "esp_check.h"
 #include "esp_lcd_panel_io_additions.h"
 #include "esp_lcd_panel_ops.h"
@@ -21,9 +23,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
+#include "storage/storage.h"
 #include "ui/i18n.h"
+#include "ui/led_engine.h"
+#include "ui/screens/screens.h"
 
 static const char *TAG = "display";
+
+extern bool qmi8658_present_c(void);
+extern bool qmi8658_read_c(float *, float *, float *, float *);
+extern bool audio_ready_c(void);
+extern void audio_set_volume(int);
 
 #define TTF_PATH      "/spiffs/fonts/ui.ttf" /* stat 用 VFS 路径 */
 #define TTF_LV_PATH   "A:" TTF_PATH          /* LVGL FS_POSIX 盘符 A: */
@@ -31,9 +41,16 @@ static const char *TAG = "display";
 
 static bool s_ready = false;
 static lv_display_t *s_disp;
-static lv_obj_t *s_textarea;
-static lv_obj_t *s_status_label;
 static const lv_font_t *s_font;
+
+/* 状态主题色(与 led_engine 一致) */
+static const uint32_t STATE_HEX[AGENT_STATE_MAX] = {
+    [AGENT_IDLE] = 0x404060,        [AGENT_CONNECTING] = 0x0080cc,
+    [AGENT_THINKING] = 0x9050ff,    [AGENT_RESPONDING] = 0x00cc88,
+    [AGENT_TOOL_USE] = 0xee8800,    [AGENT_WAITING_USER] = 0x0090ee,
+    [AGENT_ERROR] = 0xee2222,       [AGENT_RATE_LIMITED] = 0xcc6600,
+    [AGENT_OFFLINE] = 0x555566,
+};
 
 bool display_ready(void) { return s_ready; }
 
@@ -146,6 +163,50 @@ static esp_err_t panel_init(void)
     return ESP_OK;
 }
 
+/* ---- ui_host_api_t 回调:接固件后端 ---- */
+static void api_lock(void) { lvgl_port_lock(0); }
+static void api_unlock(void) { lvgl_port_unlock(); }
+static void api_wifi_scan(void) { comm_wifi_scan_async(); }
+static void api_wifi_connect(const char *ssid, const char *pass)
+{
+    comm_wifi_set_credentials(ssid, pass);
+}
+static void api_music_cmd(int cmd)
+{
+    /* TODO: 接 SD 播放列表;骨架先以提示音反馈按键 */
+    if (cmd == 1) audio_play_tone(0);
+}
+static void api_music_volume(int vol) { audio_set_volume(vol); }
+static void api_light_set(int mode, uint8_t r, uint8_t g, uint8_t b,
+                          int speed, int brightness)
+{
+    led_engine_set_fx((led_fx_t)mode, r, g, b, (uint8_t)speed);
+    g_app.brightness = (uint8_t)(brightness * 255 / 100);
+}
+
+static const ui_host_api_t s_api = {
+    .lock = api_lock,
+    .unlock = api_unlock,
+    .wifi_scan = api_wifi_scan,
+    .wifi_connect = api_wifi_connect,
+    .music_cmd = api_music_cmd,
+    .music_volume = api_music_volume,
+    .light_set = api_light_set,
+};
+
+static void devices_populate(void)
+{
+    ui_devices_set(UI_DEV_EXPANDER, io_expander() != NULL, "0x20");
+    ui_devices_set(UI_DEV_TOUCH, i2c_probe(I2C_ADDR_CST820), "0x15");
+    ui_devices_set(UI_DEV_IMU, qmi8658_present_c(), "0x6B");
+    ui_devices_set(UI_DEV_CODEC, audio_ready_c(), "I2S");
+    ui_devices_set(UI_DEV_INA226, i2c_probe(I2C_ADDR_INA226), "0x40");
+    ui_devices_set(UI_DEV_CHARGER, i2c_probe(I2C_ADDR_MP2760), "0x5C");
+    ui_devices_set(UI_DEV_SD, storage_sd_mounted(),
+                   storage_sd_mounted() ? "mounted" : "no card");
+    ui_devices_set(UI_DEV_CAN, true, "500k"); /* 驱动已装;总线活动见 can_status */
+}
+
 static void ui_create(void)
 {
     lvgl_port_lock(0);
@@ -160,39 +221,40 @@ static void ui_create(void)
         }
     }
 #endif
-    lv_obj_t *scr = lv_screen_active();
-    lv_obj_set_style_bg_color(scr, lv_color_hex(0x0a0a12), 0);
-
-    s_status_label = lv_label_create(scr);
-    lv_obj_set_pos(s_status_label, 14, 8);
-    lv_obj_set_style_text_color(s_status_label, lv_color_hex(0x66aaff), 0);
-    lv_obj_set_style_text_font(s_status_label, s_font, 0);
-    lv_label_set_text(s_status_label, tr(STR_WAIT_HOST));
-
-    s_textarea = lv_textarea_create(scr);
-    lv_obj_set_size(s_textarea, BOARD_LCD_H_RES - 20, BOARD_LCD_V_RES - 56);
-    lv_obj_set_pos(s_textarea, 10, 46);
-    lv_obj_set_style_bg_color(s_textarea, lv_color_hex(0x0a0a12), 0);
-    lv_obj_set_style_text_color(s_textarea, lv_color_hex(0xd0d0e0), 0);
-    lv_obj_set_style_text_font(s_textarea, s_font, 0);
-    lv_textarea_set_max_length(s_textarea, 4096);
-    lv_textarea_add_text(s_textarea, tr(STR_WELCOME));
+    lv_theme_default_init(s_disp, lv_palette_main(LV_PALETTE_BLUE),
+                          lv_palette_main(LV_PALETTE_CYAN), true, s_font);
+    lv_obj_t *root = ui_screens_create(&s_api);
+    lv_obj_set_style_text_font(root, s_font, 0);
     lvgl_port_unlock();
+
+    ui_files_set_root("A:" STORAGE_SPIFFS_BASE);
+    ui_home_append_text(tr(STR_WELCOME));
+    ui_music_set_track("(no track)", "put WAV in /sdcard/music", 0);
+    devices_populate();
 }
 
-/* 文本流消费:host TEXT 消息 → 屏幕(或日志降级) */
+/* UI 数据泵:文本流 + 状态/用量/context 同步 + IMU/遥测低速刷新 */
 static void text_task(void *arg)
 {
     char buf[257];
     uint8_t stream;
     agent_state_t last_state = AGENT_STATE_MAX;
+    int slow_div = 0;
     while (1) {
-        /* 状态标签跟随 agent 状态(随当前语言) */
-        if (s_ready && s_status_label && g_app.state != last_state) {
+        if (s_ready && g_app.state != last_state) {
             last_state = g_app.state;
-            lvgl_port_lock(0);
-            lv_label_set_text(s_status_label, tr_state(last_state));
-            lvgl_port_unlock();
+            ui_home_set_state(tr_state(last_state),
+                              lv_color_hex(STATE_HEX[last_state]));
+        }
+        if (s_ready && ++slow_div >= 25) { /* 500ms 低速项 */
+            slow_div = 0;
+            ui_home_set_usage(
+                g_app.usage_pct[0] == 0xFF ? -1 : g_app.usage_pct[0],
+                g_app.usage_pct[1] == 0xFF ? -1 : g_app.usage_pct[1]);
+            ui_home_set_context(g_app.ctx_used / 1000, g_app.ctx_total / 1000);
+            float ax, ay, az, tc;
+            if (qmi8658_read_c(&ax, &ay, &az, &tc))
+                ui_devices_set_imu_live(ax, ay, az, tc);
         }
         int n = app_text_pop(buf, sizeof(buf) - 1, &stream);
         if (n <= 0) {
@@ -200,10 +262,8 @@ static void text_task(void *arg)
             continue;
         }
         buf[n] = '\0';
-        if (s_ready && s_textarea) {
-            lvgl_port_lock(0);
-            lv_textarea_add_text(s_textarea, buf);
-            lvgl_port_unlock();
+        if (s_ready) {
+            ui_home_append_text(buf);
         } else {
             ESP_LOGI(TAG, "[%s] %s", stream ? "out" : "in", buf);
         }

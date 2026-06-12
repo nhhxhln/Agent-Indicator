@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "storage/storage.h"
 #include "ui/i18n.h"
+#include "ui/led_engine.h"
 
 static const char *TAG = "console";
 
@@ -50,6 +51,28 @@ static int cmd_lang(int argc, char **argv)
     return 0;
 }
 
+static int cmd_light(int argc, char **argv)
+{
+    static const char *names[LED_FX_MAX] = { "agent", "solid", "breath",
+                                             "marquee", "rainbow", "off" };
+    if (argc < 2) {
+        printf("light <agent|solid|breath|marquee|rainbow|off> [RRGGBB] [speed]\n"
+               "current: %s\n", names[led_engine_get_fx()]);
+        return 0;
+    }
+    int mode = -1;
+    for (int i = 0; i < LED_FX_MAX; i++)
+        if (strcmp(argv[1], names[i]) == 0) mode = i;
+    if (mode < 0) { printf("unknown mode\n"); return 1; }
+    unsigned rgb = 0x0080ff;
+    if (argc >= 3) sscanf(argv[2], "%x", &rgb);
+    int speed = argc >= 4 ? atoi(argv[3]) : 40;
+    led_engine_set_fx((led_fx_t)mode, (rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF,
+                      rgb & 0xFF, (uint8_t)speed);
+    printf("light=%s color=%06X speed=%d\n", names[mode], rgb, speed);
+    return 0;
+}
+
 extern "C" void case_storage_register(void)
 {
     const esp_console_cmd_t cmds[] = {
@@ -59,6 +82,8 @@ extern "C" void case_storage_register(void)
           .hint = nullptr, .func = cmd_ls, .argtable = nullptr },
         { .command = "lang", .help = "lang [zh|en] - UI 语言(NVS 持久化)",
           .hint = nullptr, .func = cmd_lang, .argtable = nullptr },
+        { .command = "light", .help = "light <mode> [RRGGBB] [speed] - 灯效",
+          .hint = nullptr, .func = cmd_light, .argtable = nullptr },
     };
     for (auto &c : cmds) ESP_ERROR_CHECK(esp_console_cmd_register(&c));
 }
@@ -70,10 +95,18 @@ extern "C" esp_err_t app_console_start(void)
     repl_cfg.prompt = "agentind>";
     repl_cfg.task_stack_size = 8192; /* 命令直接跑在 REPL 任务上,printf+vfs 需要余量 */
 
+    /* REPL 跟随 sdkconfig 的控制台通道:默认 UART0(43/44,与 TWAI 二选一),
+     * CAN 联调时 menuconfig 切回 USB Serial/JTAG */
+#if CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM
+    esp_console_dev_uart_config_t hw_cfg = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    ESP_RETURN_ON_ERROR(
+        esp_console_new_repl_uart(&hw_cfg, &repl_cfg, &repl), TAG, "repl");
+#else
     esp_console_dev_usb_serial_jtag_config_t hw_cfg =
         ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
     ESP_RETURN_ON_ERROR(
         esp_console_new_repl_usb_serial_jtag(&hw_cfg, &repl_cfg, &repl), TAG, "repl");
+#endif
 
     esp_console_register_help_command();
     case_storage_register();

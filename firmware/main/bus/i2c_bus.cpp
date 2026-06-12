@@ -45,3 +45,14 @@ extern "C" void io_expander_set(uint32_t pin_num, bool level)
     if (s_expander)
         esp_io_expander_set_level(s_expander, 1u << pin_num, level);
 }
+
+extern "C" bool i2c_probe(uint8_t addr7)
+{
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (addr7 << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_stop(cmd);
+    esp_err_t err = i2c_master_cmd_begin(kPort, cmd, pdMS_TO_TICKS(50));
+    i2c_cmd_link_delete(cmd);
+    return err == ESP_OK;
+}

@@ -336,6 +336,13 @@ extern "C" void audio_play_tone(uint8_t tone_id)
     if (s_tone_q) xQueueSend(s_tone_q, &tone_id, 0);
 }
 
+extern "C" bool audio_ready_c(void) { return s_ready; }
+
+extern "C" void audio_set_volume(int vol)
+{
+    if (s_codec) es8311_voice_volume_set(s_codec, vol, nullptr);
+}
+
 extern "C" esp_err_t audio_start(void)
 {
     s_tx_mtx = xSemaphoreCreateMutex();

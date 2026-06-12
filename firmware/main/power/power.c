@@ -7,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "proto/proto.h"
+#include "ui/screens/screens.h"
 
 static const char *TAG = "power";
 
@@ -30,6 +31,7 @@ static void power_task(void *arg)
         payload[10] = 0;  /* power_src */
         if (comm_active_link() != COMM_LINK_NONE)
             comm_send(PROTO_MSG_TELEMETRY, payload, sizeof(payload));
+        ui_devices_set_power(cell[0] + cell[1] + cell[2], ibat, payload[8]);
         vTaskDelay(pdMS_TO_TICKS(REPORT_PERIOD_MS));
     }
 }

@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lv_conf.h
+
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/lv_version.h
+
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/draw/sw/blend/helium/lv_blend_helium.S
+Pre_Include_Global.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/draw/sw/blend/helium/Pre_Include_Global.h
+RTE_Components.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/draw/sw/blend/helium/RTE_Components.h
+../../../../lv_conf_internal.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/lv_conf_internal.h
+
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/lv_conf_internal.h
+lv_conf_kconfig.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/lv_conf_kconfig.h
+lv_conf.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/lv_conf.h
+../../lv_conf.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lv_conf.h
+my_include.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/my_include.h
+
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/lv_conf_kconfig.h
+sdkconfig.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/sdkconfig.h
+esp_attr.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/src/esp_attr.h
+nuttx/config.h
+-
+../lv_version.h
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/firmware/managed_components/lvgl__lvgl/lv_version.h
+lv_rt_thread_conf.h
+-
+
+/storage/Code/j6p_0330/Sample/Claude/AgentIndicator/tools/ui_sim/lv_conf.h
+
