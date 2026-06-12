@@ -1,0 +1,18 @@
+# ESP-IDF
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/dependencies.lock
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+dist/
+
+# 编辑器/系统
+.vscode/
+.idea/
+*.swp
+.DS_Store

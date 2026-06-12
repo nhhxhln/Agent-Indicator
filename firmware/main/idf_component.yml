@@ -1,0 +1,12 @@
+dependencies:
+  idf: ">=5.2"
+  espressif/led_strip: "^2.5"
+  espressif/mdns: "^1.2"
+  espressif/esp_lcd_st7701: "^1.0"
+  espressif/esp_lcd_touch_cst816s: "^1.0"   # CST820 同协议族
+  espressif/esp_lcd_panel_io_additions: "^1.0"  # ST7701 3-wire SPI 初始化
+  espressif/esp_io_expander_tca9554: "^1.0"  # v2 用新 i2c_master 驱动,与 es8311 的 legacy 驱动冲突
+  espressif/esp_tinyusb: "^1.4"
+  espressif/es8311: "^1.0"
+  lvgl/lvgl: "^9.1"
+  espressif/esp_lvgl_port: "^2.3"

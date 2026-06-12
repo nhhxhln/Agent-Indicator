@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "app_state.c"
+        "proto/proto.c"
+        "bus/i2c_bus.cpp"
+        "storage/storage.cpp"
+        "console/app_console.cpp"
+        "comm/comm_wifi.c"
+        "comm/comm_twai.c"
+        "comm/comm_usb.c"
+        "ui/led_engine.c"
+        "ui/display.c"
+        "audio/audio.cpp"
+        "power/power.c"
+        "drivers/qmi8658.cpp"
+        "cases/case_can.cpp"
+        "cases/case_imu.cpp"
+    INCLUDE_DIRS "."
+    REQUIRES driver esp_wifi esp_http_server nvs_flash esp_adc
+    PRIV_REQUIRES esp_timer console spiffs fatfs sdmmc vfs esp_lcd
+)
