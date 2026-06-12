@@ -75,6 +75,8 @@ Unified **90×90×22mm** tile frame (fits the largest parts: ring OD85 / LCD 76.
 Magnets + 4P pogo (VLED / GND / DATA-IN / DATA-OUT) on edge midpoints; dovetail into a
 powered dock rail. Four matrix tiles in 2×2 give native 16×16.
 
+![Tiles 3D render](../images/tiles-3d.png)
+
 | Item | Value |
 |---|---|
 | Tile | 90 × 90 × 22mm, ~0.8kg magnetic retention (Ø8×3 N magnets ×4) |
@@ -85,15 +87,48 @@ powered dock rail. Four matrix tiles in 2×2 give native 16×16.
 
 ---
 
+## Variant E "Soundbar" — under-monitor bar
+
+Slides into the gap under a monitor stand; the 12°-tilted front face puts everything
+toward the user: 8×8 matrix left (compact 48mm pitch), a shrunken Halo center
+(Ø47 ring + a 1.28" round LCD such as GC9A01), horizontal usage bar right, and a
+full-width **160LED@329mm mic bar** along the bottom edge.
+
+![Soundbar 3D render](../images/soundbar-3d.png)
+
+| Item | Value |
+|---|---|
+| Overall | 340 × 58 × 54mm, front tilted 12° |
+| Mic bar | 160LED @ 329mm (longest in the line, best VU) |
+| Display | central Halo uses a 1.28" round LCD, ring shrinks to Ø47 |
+| Battery | 2×18650 (height-limited), or battery-less USB-PD |
+| Notes | mics at both ends, away from monitor speakers |
+
+## Variant F "Orb" — spherical desk pet
+
+A Ø110 sphere with a flattened front carrying the Halo, ambient ring glowing at the
+base, gazing up 12° at the user. Status + I/O only (no matrix/usage — they live in
+the round UI). The most affective, lowest-part-count form; the base ring reuses the
+Circle LED board.
+
+![Orb 3D render](../images/orb-3d.png)
+
+| Item | Value |
+|---|---|
+| Overall | Ø110 sphere + Ø96 weighted base, ~135mm tall |
+| LEDs | front Circle 24 + base ambient ring (two Circle boards) |
+| Battery | 1×18650 centered as ballast, or 21700 |
+| Notes | IMU tap = confirm gesture; two CNC/printed hemispheres bonded at the equator |
+
 ## Comparison & Recommendation
 
-| | A Halo | B Console | C Totem | D Tiles |
-|---|---|---|---|---|
-| Feature completeness | ◐ (no matrix) | ● | ● | ●+ |
-| Compact / refined | ●● | ● | ● (smallest footprint) | ◐ (long rail) |
-| Mechanical difficulty | low | medium | medium | high (pogo/magnets/enum) |
-| 16×16 path | external | new shell | n/a | native |
-| Positioning | entry / gift | **primary, build first** | derivative | flagship, phase 2 |
+| | A Halo | B Console | C Totem | D Tiles | E Soundbar | F Orb |
+|---|---|---|---|---|---|---|
+| Feature completeness | ◐ (no matrix) | ● | ● | ●+ | ● | ◔ (status+IO only) |
+| Compact / refined | ●● | ● | ● (smallest footprint) | ◐ (long rail) | ● (hides under monitor) | ●● (desk pet) |
+| Mechanical difficulty | low | medium | medium | high (pogo/magnets/enum) | medium | medium (sphere seam) |
+| 16×16 path | external | new shell | n/a | native | n/a | n/a |
+| Positioning | entry / gift | **primary, build first** | derivative | flagship, phase 2 | always-on workstation | affective derivative |
 
 **Suggested route**: build B (Console) first to validate all circuits and firmware →
 reuse the Halo unit for A → phase 2 for D's dock and tiles. All four share one main
@@ -102,4 +137,4 @@ board (doc 04); only shells and LED carriers differ.
 Dimensions assumed (correct with real parts in hand):
 1. 18650 length 65mm (unprotected), holder envelope 58×78mm;
 2. matrix board: PCB 1.6mm + LED 2.5mm;
-3. LCD module total thickness 3.5mm (with CTP).
+3. ~~LCD module total thickness 3.5mm (with CTP)~~ confirmed: **2.34mm** (73.03×76.48×2.34 actual spec).

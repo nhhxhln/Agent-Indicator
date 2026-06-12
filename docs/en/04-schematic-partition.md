@@ -63,6 +63,22 @@ N16R8: GPIO35/36/37 taken by octal PSRAM; GPIO19/20 are USB D-/D+.
 
 I2C address map: CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2760 0x5C (verify) · 24C02 (variant-D tiles) 0x50-0x53.
 
+## 2.1 LCD 40P FPC Pinout (actual module spec)
+
+Module: ST7701 + CST820, outline 73.03 × 76.48 × **2.34mm**, AA 70.13×70.13, SPI/RGB dual mode.
+
+| FPC pin | Signal | Connection |
+|---|---|---|
+| LED_A / LED_K ×2 | backlight anode/cathodes | backlight driver (5V0, ~40mA), gated by BL_EN |
+| GND ×3 | ground | — |
+| VCI | panel supply | VDD 3.3V |
+| RESET | panel reset | TCA9554 P0 (LCD_RST) |
+| NC ×2 | — | — |
+| SDA / SCK / CS | init SPI (9-bit 3-wire) | SDA←LCD_G0 net, SCK←LCD_PCLK net, CS←TCA9554 P5; the panel has dedicated SPI pins — only the MCU side borrows RGB GPIOs |
+| PCLK / DE / VSYNC / HSYNC | RGB timing | GPIO14 / 47 / 45 / 46 |
+| DB0–DB17 | 18-bit RGB data | RGB565 wiring: R4..0←DB17..13, G5..0←DB11..6, B4..0←DB5..1; **DB0 & DB12 to GND** (standard 666→565 drop, confirm against the panel datasheet) |
+| TP_INT / TP_SDA / TP_SCL / TP_RESET / TP_VCI | CST820 touch | TCA9554 P7 / I2C_SDA / I2C_SCL / TCA9554 P1 / VDD |
+
 ## 3. ST7701 Init Path
 
 The RGB panel needs its init sequence over 3-wire 9-bit SPI first. Borrowed lines

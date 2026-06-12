@@ -63,6 +63,22 @@ N16R8:GPIO35/36/37 被 Octal PSRAM 占用;GPIO19/20 为 USB D-/D+。
 
 I2C 地址表:CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2760 0x5C(待核) · 24C02(D 方案模块)0x50-0x53。
 
+## 2.1 LCD 40P FPC 引脚定义(实物规格)
+
+模组:ST7701 + CST820,结构 73.03 × 76.48 × **2.34mm**,AA 70.13×70.13,SPI/RGB 双模。
+
+| FPC 引脚 | 信号 | 接法 |
+|---|---|---|
+| LED_A / LED_K ×2 | 背光阳/阴极 | 背光驱动(5V0,~40mA),BL_EN 控制 |
+| GND ×3 | 地 | — |
+| VCI | 面板电源 | VDD 3.3V |
+| RESET | 面板复位 | TCA9554 P0(LCD_RST) |
+| NC ×2 | 空 | — |
+| SDA / SCK / CS | 初始化 SPI(9-bit 3-wire) | SDA←LCD_G0 网络,SCK←LCD_PCLK 网络,CS←TCA9554 P5;面板有独立 SPI 脚,无需在面板侧复用,仅 MCU 侧借 RGB 引脚 |
+| PCLK / DE / VSYNC / HSYNC | RGB 时序 | GPIO14 / 47 / 45 / 46 |
+| DB0–DB17 | 18-bit RGB 数据 | RGB565 接法:R4..0←DB17..13,G5..0←DB11..6,B4..0←DB5..1;**DB0、DB12 接地**(666→565 标准降位,以屏厂 datasheet 终核) |
+| TP_INT / TP_SDA / TP_SCL / TP_RESET / TP_VCI | CST820 触摸 | TCA9554 P7 / I2C_SDA / I2C_SCL / TCA9554 P1 / VDD |
+
 ## 3. ST7701 初始化链路说明
 
 RGB 屏需先经 3-wire 9-bit SPI 写初始化序列。借用方式(Espressif EV-Board 同款):
