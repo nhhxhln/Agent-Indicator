@@ -94,7 +94,7 @@ static void feed_mock(void)
     ui_devices_set(UI_DEV_EXPANDER, true, "0x20");
     ui_devices_set(UI_DEV_TOUCH, true, "0x15");
     ui_devices_set(UI_DEV_IMU, true, "0x6B");
-    ui_devices_set(UI_DEV_CODEC, true, "I2S");
+    ui_devices_set(UI_DEV_CODEC, true, "WM8960");
     ui_devices_set(UI_DEV_INA226, true, "0x40");
     ui_devices_set(UI_DEV_CHARGER, false, "--");
     ui_devices_set(UI_DEV_SD, true, "29.7GB");

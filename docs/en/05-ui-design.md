@@ -58,7 +58,7 @@ Four zones, top to bottom:
    | TCA9554 IO expander | 0x20 | slow-control expander |
    | CST836U touch | 0x15 | cap touch |
    | QMI8658C IMU | 0x6B | 6-axis |
-   | ES8311 codec | I2S | audio |
+   | Audio codec | ES8311/WM8960 | I2S + I2C, auto-detected |
    | INA226 monitor | 0x40 | power telemetry |
    | MP2760 charger | 0x5C | charging |
    | microSD | — | SDMMC mount state |
@@ -86,7 +86,7 @@ They share the I2C bus (plug into the Qwiic connector).
 
 ![Music](../images/ui/ui-music.png)
 
-- Track info + progress + transport (prev/play/next) + volume arc (ES8311 DAC);
+- Track info + progress + transport (prev/play/next) + volume arc (codec DAC);
 - Backend is `audio_player` (WAV from SD); playlist glue marked TODO.
 
 ## 7. Light / Dark theme

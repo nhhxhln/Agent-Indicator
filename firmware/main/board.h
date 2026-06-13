@@ -37,7 +37,9 @@
 #define BOARD_I2C_SDA       38
 #define BOARD_I2C_SCL       39
 #define BOARD_I2C_FREQ_HZ   400000
-#define I2C_ADDR_CST836U     0x15
+#define I2C_ADDR_CST836U    0x15
+#define I2C_ADDR_ES8311     0x18
+#define I2C_ADDR_WM8960     0x1A
 #define I2C_ADDR_TCA9554    0x20
 #define I2C_ADDR_INA226     0x40
 #define I2C_ADDR_MP2760     0x5C
@@ -62,11 +64,12 @@
 #define BOARD_USAGE_LEDS        20
 #define BOARD_VU_LEDS           64
 
-/* ---- I2S (ES8311, MCLK-from-SCLK) ---- */
+/* ---- I2S (ES8311 默认 MCLK-from-SCLK;WM8960 需要 MCLK) ---- */
 #define BOARD_I2S_BCLK      1
 #define BOARD_I2S_WS        21
 #define BOARD_I2S_DOUT      42   /* v0.2: 原 33(octal PSRAM)→ 42 */
 #define BOARD_I2S_DIN       44   /* v0.2: 原 34(octal PSRAM)→ 44 */
+#define BOARD_I2S_MCLK      -1   /* ES8311 用 SCLK 可设 -1;接 WM8960 时分配一个空闲 GPIO */
 
 /* ---- LCD 背光 PWM(恒流驱动 IC 的 DIM/PWM 脚,调光)---- */
 #define BOARD_LCD_BL_PWM    43   /* LEDC 调光;EN(开关)走 TCA9554 EXP_LCD_BL_EN */

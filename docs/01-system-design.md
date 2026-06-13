@@ -54,7 +54,7 @@
 | 功能 | 选型 | 备选 | 说明 |
 |---|---|---|---|
 | CAN 收发器 | **TJA1051T/3** | SIT1051T(国产) | /3 版本 VIO 3.3V,无需电平转换;5V 供电自 5V0 |
-| Audio Codec | **ES8311** | ES8388(立体声) | 单声道 ADC+DAC,I2S + I2C 控制,ESP-IDF `esp_codec_dev` 原生支持;支持 BCLK 作 MCLK 源(省 1 个 GPIO) |
+| Audio Codec | **ES8311**(默认)/ **WM8960**(同时支持) | ES8388 | 固件运行时按 I2C 地址自动探测:ES8311@0x18(单声道,BCLK 作 MCLK 省 GPIO)/ WM8960@0x1A(立体声,**需 MCLK**,接 `BOARD_I2S_MCLK`)。两者引脚一致,二选一焊装 |
 | Audio PA | **NS4150B** | MAX98357(纯 I2S 方案) | 3W Class-D,Espressif 官方板同款搭配;EN 脚接 IO 扩展器 |
 | MIC | **MSM261(模拟 MEMS)→ ES8311 MIC_IN** | INMP441(I2S 数字,需多占线) | 走 codec 模拟输入,省 I2S 线;拾音条 VU 由固件 RMS 计算 |
 | IMU | **QMI8658C** | LSM6DS3TR-C | 6 轴,I2C,带敲击/抬手中断,资料多价格低;用于敲击交互、姿态感知翻转显示 |

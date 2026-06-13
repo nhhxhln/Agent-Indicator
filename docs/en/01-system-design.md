@@ -55,7 +55,7 @@ Note: octal PSRAM on the N16R8 occupies GPIO35/36/37 — see the pinmap in doc 0
 | Function | Choice | Alternative | Notes |
 |---|---|---|---|
 | CAN transceiver | **TJA1051T/3** | SIT1051T | /3 variant has 3.3V VIO, no level shifting; 5V from 5V0 |
-| Audio codec | **ES8311** | ES8388 (stereo) | Mono ADC+DAC, I2S + I2C control, native `esp_codec_dev` support; can derive MCLK from SCLK (saves one GPIO) |
+| Audio codec | **ES8311** (default) / **WM8960** (also supported) | ES8388 | Firmware auto-detects by I2C address at runtime: ES8311@0x18 (mono, BCLK-as-MCLK saves a GPIO) / WM8960@0x1A (stereo, **needs MCLK** on `BOARD_I2S_MCLK`). Same pinout, populate either |
 | Audio PA | **NS4150B** | MAX98357 (pure I2S) | 3W class-D, same pairing as Espressif dev boards; EN on the IO expander |
 | MIC | **MSM261 (analog MEMS) → ES8311 MIC_IN** | INMP441 (I2S digital) | Analog input via codec saves I2S lines; VU computed in firmware (RMS) |
 | IMU | **QMI8658C** | LSM6DS3TR-C | 6-axis, I2C, tap/raise interrupts; cheap and well documented; used for tap interaction and orientation flip |

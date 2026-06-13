@@ -10,7 +10,7 @@ static const char *DEV_NAMES[UI_DEV_MAX] = {
     "TCA9554 IO expander",
     "CST836U touch",
     "QMI8658C IMU",
-    "ES8311 codec",
+    "Audio codec",
     "INA226 monitor",
     "MP2760 charger",
     "microSD",

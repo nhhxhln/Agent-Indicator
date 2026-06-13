@@ -25,6 +25,7 @@
 #include "bus/i2c_bus.h"
 #include "console/app_console.h"
 #include "driver/i2s_std.h"
+#include "drivers/wm8960.h"
 #include "es8311.h"
 #include "esp_check.h"
 #include "esp_console.h"
@@ -49,6 +50,8 @@ constexpr int kToneStack = 4096;
 
 i2s_chan_handle_t s_tx, s_rx;
 es8311_handle_t s_codec;
+enum codec_kind { CODEC_NONE, CODEC_ES8311, CODEC_WM8960 };
+codec_kind s_codec_kind = CODEC_NONE;
 bool s_ready = false;
 
 SemaphoreHandle_t s_tx_mtx;                   /* tone/player/loopback 串行化 */
@@ -302,10 +305,10 @@ int cmd_loop(int argc, char **argv)
 
 int cmd_vol(int argc, char **argv)
 {
-    if (argc < 2 || !s_codec) return 1;
-    int set = 0;
-    es8311_voice_volume_set(s_codec, atoi(argv[1]), &set);
-    printf("volume=%d\n", set);
+    if (argc < 2 || !s_ready) return 1;
+    int v = atoi(argv[1]);
+    audio_set_volume(v);
+    printf("volume=%d (%s)\n", v, audio_codec_name());
     return 0;
 }
 
@@ -338,9 +341,19 @@ extern "C" void audio_play_tone(uint8_t tone_id)
 
 extern "C" bool audio_ready_c(void) { return s_ready; }
 
+extern "C" const char *audio_codec_name(void)
+{
+    switch (s_codec_kind) {
+    case CODEC_WM8960: return "WM8960";
+    case CODEC_ES8311: return "ES8311";
+    default: return "none";
+    }
+}
+
 extern "C" void audio_set_volume(int vol)
 {
-    if (s_codec) es8311_voice_volume_set(s_codec, vol, nullptr);
+    if (s_codec_kind == CODEC_WM8960) wm8960_set_volume(vol);
+    else if (s_codec) es8311_voice_volume_set(s_codec, vol, nullptr);
 }
 
 extern "C" esp_err_t audio_start(void)
@@ -357,7 +370,8 @@ extern "C" esp_err_t audio_start(void)
         .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT,
                                                         I2S_SLOT_MODE_MONO),
         .gpio_cfg = {
-            .mclk = I2S_GPIO_UNUSED,
+            /* ES8311 用 SCLK 当 MCLK 可不接;WM8960 需要 MCLK(BOARD_I2S_MCLK) */
+            .mclk = (BOARD_I2S_MCLK >= 0) ? (gpio_num_t)BOARD_I2S_MCLK : I2S_GPIO_UNUSED,
             .bclk = (gpio_num_t)BOARD_I2S_BCLK,
             .ws   = (gpio_num_t)BOARD_I2S_WS,
             .dout = (gpio_num_t)BOARD_I2S_DOUT,
@@ -370,25 +384,34 @@ extern "C" esp_err_t audio_start(void)
     ESP_RETURN_ON_ERROR(i2s_channel_enable(s_tx), TAG, "tx en");
     ESP_RETURN_ON_ERROR(i2s_channel_enable(s_rx), TAG, "rx en");
 
-    s_codec = es8311_create(i2c_bus_port(), ES8311_ADDRRES_0);
-    if (s_codec) {
-        es8311_clock_config_t clk = {
-            .mclk_inverted = false,
-            .sclk_inverted = false,
-            .mclk_from_mclk_pin = false, /* SCLK 作 MCLK,省 GPIO */
-            .mclk_frequency = 0,
-            .sample_frequency = kSampleRate,
-        };
-        if (es8311_init(s_codec, &clk, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16) == ESP_OK) {
-            es8311_voice_volume_set(s_codec, 70, nullptr);
-            es8311_microphone_config(s_codec, false);
-            es8311_microphone_gain_set(s_codec, ES8311_MIC_GAIN_18DB);
+    /* 运行时探测 codec:WM8960(0x1A)优先,否则 ES8311(0x18)。两者引脚一致 */
+    if (wm8960_probe()) {
+        if (wm8960_init(kSampleRate) == ESP_OK) {
+            s_codec_kind = CODEC_WM8960;
             s_ready = true;
-            ESP_LOGI(TAG, "es8311 ready @%dHz", kSampleRate);
+        }
+    } else {
+        s_codec = es8311_create(i2c_bus_port(), ES8311_ADDRRES_0);
+        if (s_codec) {
+            es8311_clock_config_t clk = {
+                .mclk_inverted = false,
+                .sclk_inverted = false,
+                .mclk_from_mclk_pin = (BOARD_I2S_MCLK >= 0), /* 无 MCLK 时用 SCLK */
+                .mclk_frequency = 0,
+                .sample_frequency = kSampleRate,
+            };
+            if (es8311_init(s_codec, &clk, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16) == ESP_OK) {
+                es8311_voice_volume_set(s_codec, 70, nullptr);
+                es8311_microphone_config(s_codec, false);
+                es8311_microphone_gain_set(s_codec, ES8311_MIC_GAIN_18DB);
+                s_codec_kind = CODEC_ES8311;
+                s_ready = true;
+                ESP_LOGI(TAG, "es8311 ready @%dHz", kSampleRate);
+            }
         }
     }
     if (!s_ready)
-        ESP_LOGW(TAG, "es8311 not found, audio cases disabled (bare devkit?)");
+        ESP_LOGW(TAG, "no codec found (es8311/wm8960), audio disabled (bare devkit?)");
 
     xTaskCreate(capture_task, "a_cap", kCaptureStack, nullptr, 10, nullptr);
     xTaskCreate(tone_task, "a_tone", kToneStack, nullptr, 7, nullptr);

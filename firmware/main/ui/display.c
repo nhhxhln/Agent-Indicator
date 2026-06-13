@@ -249,7 +249,7 @@ static void devices_populate(void)
     ui_devices_set(UI_DEV_EXPANDER, io_expander() != NULL, "0x20");
     ui_devices_set(UI_DEV_TOUCH, i2c_probe(I2C_ADDR_CST836U), "0x15");
     ui_devices_set(UI_DEV_IMU, qmi8658_present_c(), "0x6B");
-    ui_devices_set(UI_DEV_CODEC, audio_ready_c(), "I2S");
+    ui_devices_set(UI_DEV_CODEC, audio_ready_c(), audio_codec_name());
     ui_devices_set(UI_DEV_INA226, i2c_probe(I2C_ADDR_INA226), "0x40");
     ui_devices_set(UI_DEV_CHARGER, i2c_probe(I2C_ADDR_MP2760), "0x5C");
     ui_devices_set(UI_DEV_SD, storage_sd_mounted(),
