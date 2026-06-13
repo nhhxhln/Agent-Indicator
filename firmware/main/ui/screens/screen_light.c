@@ -83,7 +83,7 @@ void ui_tab_light_create(lv_obj_t *parent)
     lv_buttonmatrix_set_button_ctrl_all(s_modes, LV_BUTTONMATRIX_CTRL_CHECKABLE);
     lv_buttonmatrix_set_button_ctrl(s_modes, 0, LV_BUTTONMATRIX_CTRL_CHECKED);
     lv_obj_set_size(s_modes, LV_PCT(100), 104);
-    lv_obj_set_style_bg_color(s_modes, lv_color_hex(0x16161f), 0);
+    lv_obj_set_style_bg_color(s_modes, t_card(), 0);
     lv_obj_add_event_cb(s_modes, mode_changed, LV_EVENT_VALUE_CHANGED, NULL);
 
     /* 颜色卡:预览 + RGB 滑条 */

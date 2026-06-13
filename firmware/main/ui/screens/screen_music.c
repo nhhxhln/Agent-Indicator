@@ -44,14 +44,14 @@ void ui_tab_music_create(lv_obj_t *parent)
     lv_obj_set_style_text_font(s_title, &lv_font_montserrat_24, 0);
     s_artist = lv_label_create(parent);
     lv_label_set_text(s_artist, "--");
-    lv_obj_set_style_text_color(s_artist, lv_color_hex(0x8888aa), 0);
+    lv_obj_set_style_text_color(s_artist, t_sub(), 0);
 
     /* 进度 */
     s_slider = lv_slider_create(parent);
     lv_obj_set_size(s_slider, LV_PCT(90), 8);
     s_time_label = lv_label_create(parent);
     lv_label_set_text(s_time_label, "0:00 / 0:00");
-    lv_obj_set_style_text_color(s_time_label, lv_color_hex(0x8888aa), 0);
+    lv_obj_set_style_text_color(s_time_label, t_sub(), 0);
 
     /* 播控行:prev / play / next + 音量 arc */
     lv_obj_t *row = lv_obj_create(parent);

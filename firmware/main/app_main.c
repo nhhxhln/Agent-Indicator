@@ -6,6 +6,7 @@
 #include "bus/i2c_bus.h"
 #include "comm/comm.h"
 #include "console/app_console.h"
+#include "drivers/sensors.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "power/power.h"
@@ -23,6 +24,7 @@ void app_main(void)
 
     ESP_ERROR_CHECK(nvs_flash_init()); /* comm_wifi 内重复调用无害 */
     ESP_ERROR_CHECK(i2c_bus_init());
+    sensors_init();
     ESP_ERROR_CHECK(storage_init());
     ui_i18n_init();
 

@@ -24,6 +24,8 @@
 #include "freertos/task.h"
 #include "lvgl.h"
 #include "storage/storage.h"
+#include "drivers/sensors.h"
+#include "nvs.h"
 #include "ui/i18n.h"
 #include "ui/led_engine.h"
 #include "ui/screens/screens.h"
@@ -184,15 +186,25 @@ static void api_light_set(int mode, uint8_t r, uint8_t g, uint8_t b,
     g_app.brightness = (uint8_t)(brightness * 255 / 100);
 }
 
-static const ui_host_api_t s_api = {
-    .lock = api_lock,
-    .unlock = api_unlock,
-    .wifi_scan = api_wifi_scan,
-    .wifi_connect = api_wifi_connect,
-    .music_cmd = api_music_cmd,
-    .music_volume = api_music_volume,
-    .light_set = api_light_set,
-};
+static void theme_persist(int dark)
+{
+    nvs_handle_t h;
+    if (nvs_open("ui", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_u8(h, "dark", (uint8_t)dark);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+}
+static int theme_load(void)
+{
+    nvs_handle_t h;
+    uint8_t v = 1;
+    if (nvs_open("ui", NVS_READONLY, &h) == ESP_OK) {
+        nvs_get_u8(h, "dark", &v);
+        nvs_close(h);
+    }
+    return v;
+}
 
 static void devices_populate(void)
 {
@@ -205,7 +217,32 @@ static void devices_populate(void)
     ui_devices_set(UI_DEV_SD, storage_sd_mounted(),
                    storage_sd_mounted() ? "mounted" : "no card");
     ui_devices_set(UI_DEV_CAN, true, "500k"); /* 驱动已装;总线活动见 can_status */
+    ui_devices_set(UI_DEV_SHT, sht4x_present(), "0x44");
+    ui_devices_set(UI_DEV_BMP, bmp280_present(), "0x76");
+    ui_devices_set(UI_DEV_RTC, pcf8563_present(), "0x51");
 }
+
+static void api_on_rebuild(void)
+{
+    /* 主题切换重建后重填静态数据(文本流历史不恢复) */
+    devices_populate();
+    ui_files_set_root("A:" STORAGE_SPIFFS_BASE);
+    ui_music_set_track("(no track)", "put WAV in /sdcard/music", 0);
+    ui_home_set_state(tr_state(g_app.state),
+                      lv_color_hex(STATE_HEX[g_app.state]));
+}
+
+static const ui_host_api_t s_api = {
+    .lock = api_lock,
+    .unlock = api_unlock,
+    .wifi_scan = api_wifi_scan,
+    .wifi_connect = api_wifi_connect,
+    .music_cmd = api_music_cmd,
+    .music_volume = api_music_volume,
+    .light_set = api_light_set,
+    .theme_persist = theme_persist,
+    .on_rebuild = api_on_rebuild,
+};
 
 static void ui_create(void)
 {
@@ -221,9 +258,8 @@ static void ui_create(void)
         }
     }
 #endif
-    lv_theme_default_init(s_disp, lv_palette_main(LV_PALETTE_BLUE),
-                          lv_palette_main(LV_PALETTE_CYAN), true, s_font);
-    lv_obj_t *root = ui_screens_create(&s_api);
+    ui_set_font(s_font); /* build() 内据此 init theme 字体 */
+    lv_obj_t *root = ui_screens_create(&s_api, theme_load());
     lv_obj_set_style_text_font(root, s_font, 0);
     lvgl_port_unlock();
 
@@ -255,6 +291,13 @@ static void text_task(void *arg)
             float ax, ay, az, tc;
             if (qmi8658_read_c(&ax, &ay, &az, &tc))
                 ui_devices_set_imu_live(ax, ay, az, tc);
+            /* 环境读数:SHT4x 温湿度优先,气压取 BMP280 */
+            float temp = 0, humi = 0, press = 0, bt;
+            bool ok = sht4x_read(&temp, &humi);
+            if (bmp280_read(&press, &bt) && !ok) temp = bt;
+            if (ok || press > 0) ui_devices_set_env(temp, humi, press);
+            char clk[16];
+            if (pcf8563_read(clk, sizeof(clk))) ui_devices_set_time(clk);
         }
         int n = app_text_pop(buf, sizeof(buf) - 1, &stream);
         if (n <= 0) {

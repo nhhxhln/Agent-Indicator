@@ -70,7 +70,12 @@ static void mock_wifi_scan(void)
     ui_wifi_add_network("CoffeeShop", -71, false);
 }
 
-static const ui_host_api_t s_api = { .wifi_scan = mock_wifi_scan };
+static void feed_mock(void); /* fwd */
+static void mock_on_rebuild(void) { feed_mock(); }
+static const ui_host_api_t s_api = {
+    .wifi_scan = mock_wifi_scan,
+    .on_rebuild = mock_on_rebuild,
+};
 
 static void feed_mock(void)
 {
@@ -94,8 +99,13 @@ static void feed_mock(void)
     ui_devices_set(UI_DEV_CHARGER, false, "--");
     ui_devices_set(UI_DEV_SD, true, "29.7GB");
     ui_devices_set(UI_DEV_CAN, true, "500k");
+    ui_devices_set(UI_DEV_SHT, true, "0x44");
+    ui_devices_set(UI_DEV_BMP, true, "0x76");
+    ui_devices_set(UI_DEV_RTC, true, "0x51");
     ui_devices_set_imu_live(0.02f, -0.01f, 1.00f, 31.2f);
     ui_devices_set_power(11412, -324, 78);
+    ui_devices_set_env(24.6f, 47.0f, 1013.0f);
+    ui_devices_set_time("14:32:08");
 
     /* files:准备示例目录 */
     mkdir("/tmp/uisim_files", 0755);
@@ -105,13 +115,24 @@ static void feed_mock(void)
     if (f) { fputs("x", f); fclose(f); }
     f = fopen("/tmp/uisim_files/config.json", "w");
     if (f) { fputs("{}", f); fclose(f); }
-    fprintf(stderr, "M1\n");
     ui_files_set_root("A:/tmp/uisim_files");
-    fprintf(stderr, "M2\n");
 
     ui_music_set_track("Weightless", "Marconi Union", 485);
     ui_music_set_position(152, 1);
-    fprintf(stderr, "M3\n");
+}
+
+static void shoot_all(const char *out, const char *prefix)
+{
+    static const char *names[6] = { "home", "light", "wifi",
+                                    "devices", "files", "music" };
+    lv_obj_t *tv = ui_screens_tabview();
+    char path[256];
+    for (int i = 0; i < 6; i++) {
+        lv_tabview_set_active(tv, i, LV_ANIM_OFF);
+        settle(300);
+        snprintf(path, sizeof(path), "%s/ui-%s%s.bmp", out, prefix, names[i]);
+        dump_bmp(path);
+    }
 }
 
 int main(int argc, char **argv)
@@ -129,18 +150,11 @@ int main(int argc, char **argv)
                           lv_palette_main(LV_PALETTE_CYAN), true,
                           &lv_font_montserrat_16);
 
-    lv_obj_t *tv = ui_screens_create(&s_api);
+    ui_screens_create(&s_api, 1); /* 先暗色 */
     feed_mock();
+    shoot_all(out, "");
 
-    static const char *names[6] = { "home", "light", "wifi",
-                                    "devices", "files", "music" };
-    char path[256];
-    for (int i = 0; i < 6; i++) {
-        lv_tabview_set_active(tv, i, LV_ANIM_OFF);
-        fprintf(stderr, "tab %d settling\n", i);
-        settle(300);
-        snprintf(path, sizeof(path), "%s/ui-%s.bmp", out, names[i]);
-        dump_bmp(path);
-    }
+    ui_screens_set_theme(0);      /* 切亮色,on_rebuild 重填数据 */
+    shoot_all(out, "light-");
     return 0;
 }

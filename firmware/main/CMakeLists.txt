@@ -21,6 +21,7 @@ idf_component_register(
         "audio/audio.cpp"
         "power/power.c"
         "drivers/qmi8658.cpp"
+        "drivers/sensors.cpp"
         "cases/case_can.cpp"
         "cases/case_imu.cpp"
     INCLUDE_DIRS "."

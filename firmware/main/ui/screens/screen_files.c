@@ -88,7 +88,7 @@ void ui_tab_files_create(lv_obj_t *parent)
     s_list = lv_list_create(parent);
     lv_obj_set_width(s_list, LV_PCT(100));
     lv_obj_set_flex_grow(s_list, 1);
-    lv_obj_set_style_bg_color(s_list, lv_color_hex(0x101018), 0);
+    lv_obj_set_style_bg_color(s_list, t_area(), 0);
 }
 
 void ui_files_set_root(const char *lv_fs_path)

@@ -33,12 +33,35 @@
 - 网络列表(RSSI + 加密标记),点击弹出全屏密码键盘,确认后
   `esp_wifi_set_config` 存 NVS 并重连。
 
-## 4. Devices — 传感器与设备检测
+## 4. Devices — 传感器与设备检测(= 设置页)
 
 ![Devices](images/ui/ui-devices.png)
 
-- I2C/外设在位检测表(绿/红点 + 地址),开机探测一次;
-- IMU 实时行(500ms 刷新)与电源遥测行(电压/电流/SoC)。
+自上而下四个区:
+
+1. **环境读数卡**:温度 ℃ / 湿度 % / 气压 hPa(SHT4x + BMP280)+ 右侧 RTC 时钟,500ms 刷新;
+2. **设备检测表**(可滚动,11 项):绿点=在位 / 红点=缺失,右列为 I2C 地址或状态。开机 `sensors_init` + `i2c_probe` 探测一次:
+
+   | 设备 | 地址 | 说明 |
+   |---|---|---|
+   | TCA9554 IO expander | 0x20 | 慢速控制扩展 |
+   | CST820 touch | 0x15 | 电容触摸 |
+   | QMI8658C IMU | 0x6B | 6 轴 |
+   | ES8311 codec | I2S | 音频 |
+   | INA226 monitor | 0x40 | 功耗遥测 |
+   | MP2760 charger | 0x5C | 充电管理 |
+   | microSD | — | SDMMC 挂载状态 |
+   | CAN bus | 500k | TWAI |
+   | **SHT4x temp/humi** | **0x44** | **温湿度传感器** |
+   | **BMP280 pressure** | **0x76** | **气压传感器(SDO=GND;0x77=SDO=VDD)** |
+   | **PCF8563 RTC** | **0x51** | **I2C 实时时钟** |
+
+3. **IMU 实时行**:6 轴加速度 + 温度,500ms 刷新;
+4. **电源行 + 主题开关**:电压/电流/SoC,右侧 Light/Dark 开关(见 §7)。
+
+新增三个 I2C 环境传感器驱动位于 `firmware/main/drivers/sensors.cpp`:SHT4x(0xFD 高精度测量)、
+BMP280(读校准系数 + Bosch 定点补偿)、PCF8563(BCD 时间寄存器)。不在位时各 `*_present()`
+返回 false,对应行显示红点。挂在共享 I2C 总线(Qwiic 座可直接接模块)。
 
 ## 5. Files — 文件浏览
 
@@ -54,12 +77,24 @@
 - 曲目信息 + 进度条 + 播控(prev/play/next)+ 音量 arc(ES8311 DAC 音量);
 - 后端为 `audio_player`(SD 卡 WAV);播放列表 glue 标注 TODO。
 
+## 7. 主题 Light / Dark
+
+全 UI 支持亮/暗双主题,Devices 页右下角开关切换,**NVS 持久化**(重启保留)。
+实现:`screens.c` 维护两套调色板 token(`t_bg/t_card/t_text/t_sub/t_area`),
+切换时重新 `lv_theme_default_init`(内置控件)+ 按 token 重建 UI,
+并通过 `on_rebuild` 回调让宿主重新填充数据。也可由协议或控制台驱动。
+
+| Dark(默认) | Light |
+|---|---|
+| ![Home dark](images/ui/ui-home.png) | ![Home light](images/ui/ui-light-home.png) |
+| ![Devices dark](images/ui/ui-devices.png) | ![Devices light](images/ui/ui-light-devices.png) |
+
 ## 模拟器用法
 
 ```bash
 cd tools/ui_sim
 cmake -B build && cmake --build build -j   # 复用 firmware managed_components 里的 LVGL
-./build/ui_sim shots/                      # 输出 ui-*.bmp,六页各一张
+./build/ui_sim shots/                      # 输出 ui-*.bmp(暗色)+ ui-light-*.bmp(亮色),共 12 张
 ```
 
 注意:LVGL 必须配置为 CLIB malloc(固件 `CONFIG_LV_USE_CLIB_MALLOC`,

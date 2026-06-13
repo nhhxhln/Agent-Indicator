@@ -36,12 +36,36 @@ from any task.
 - Network list (RSSI + lock mark); tapping pops a full-screen password keyboard,
   then `esp_wifi_set_config` persists to NVS and reconnects.
 
-## 4. Devices — sensor & peripheral detection
+## 4. Devices — sensor & peripheral detection (= settings page)
 
 ![Devices](../images/ui/ui-devices.png)
 
-- Presence table (green/red dot + address) probed at boot;
-- Live IMU row (500ms refresh) and power telemetry row (V/I/SoC).
+Four zones, top to bottom:
+
+1. **Environment card**: temperature ℃ / humidity % / pressure hPa (SHT4x + BMP280) + RTC clock, 500ms refresh;
+2. **Presence table** (scrollable, 11 rows): green = present / red = missing, right column shows I2C address or status. Probed once at boot via `sensors_init` + `i2c_probe`:
+
+   | Device | Addr | Note |
+   |---|---|---|
+   | TCA9554 IO expander | 0x20 | slow-control expander |
+   | CST820 touch | 0x15 | cap touch |
+   | QMI8658C IMU | 0x6B | 6-axis |
+   | ES8311 codec | I2S | audio |
+   | INA226 monitor | 0x40 | power telemetry |
+   | MP2760 charger | 0x5C | charging |
+   | microSD | — | SDMMC mount state |
+   | CAN bus | 500k | TWAI |
+   | **SHT4x temp/humi** | **0x44** | **temp/humidity sensor** |
+   | **BMP280 pressure** | **0x76** | **barometer (SDO=GND; 0x77=SDO=VDD)** |
+   | **PCF8563 RTC** | **0x51** | **I2C real-time clock** |
+
+3. **Live IMU row**: 6-axis accel + temperature, 500ms refresh;
+4. **Power row + theme switch**: V/I/SoC, with a Light/Dark switch on the right (see §7).
+
+The three new I2C environment drivers live in `firmware/main/drivers/sensors.cpp`: SHT4x
+(0xFD high-precision), BMP280 (calibration + Bosch fixed-point compensation), PCF8563
+(BCD time registers). When absent each `*_present()` returns false and the row shows red.
+They share the I2C bus (plug into the Qwiic connector).
 
 ## 5. Files — file browser
 
@@ -57,12 +81,25 @@ from any task.
 - Track info + progress + transport (prev/play/next) + volume arc (ES8311 DAC);
 - Backend is `audio_player` (WAV from SD); playlist glue marked TODO.
 
+## 7. Light / Dark theme
+
+The whole UI supports light/dark themes, toggled by the switch at the bottom-right of
+the Devices page and **persisted in NVS**. Implementation: `screens.c` keeps two palette
+token sets (`t_bg/t_card/t_text/t_sub/t_area`); switching re-runs `lv_theme_default_init`
+(built-in widgets) + rebuilds the UI from tokens, then calls the `on_rebuild` host
+callback to re-populate data. Can also be driven by protocol/console.
+
+| Dark (default) | Light |
+|---|---|
+| ![Home dark](../images/ui/ui-home.png) | ![Home light](../images/ui/ui-light-home.png) |
+| ![Devices dark](../images/ui/ui-devices.png) | ![Devices light](../images/ui/ui-light-devices.png) |
+
 ## Simulator usage
 
 ```bash
 cd tools/ui_sim
 cmake -B build && cmake --build build -j   # reuses LVGL from firmware managed_components
-./build/ui_sim shots/                      # writes ui-*.bmp, one per tab
+./build/ui_sim shots/                      # writes ui-*.bmp (dark) + ui-light-*.bmp (light), 12 total
 ```
 
 Note: LVGL must use CLIB malloc (`CONFIG_LV_USE_CLIB_MALLOC` in firmware,
