@@ -18,6 +18,8 @@
 | Mic level | RGB Bar (up to 160LED@329mm) | center-out VU, fully on-device |
 | Chimes | ES8311 + 3W PA | done / attention / error tones |
 | Light effects | all strips | OpenRGB-style: solid (color picker) / breath / marquee / rainbow / off |
+| Environment | SHT4x / BMP280 / PCF8563 | temp/humidity / pressure / RTC clock, live on the Devices page |
+| UI theme | LCD | Light / Dark, toggle on the Devices page, persisted in NVS |
 
 **Three host links**: Wi-Fi (WebSocket + mDNS discovery) / CAN (SocketCAN) / USB custom
 endpoints — all listening, last-active wins. **Power**: USB-PD 15V / XT30 12-24V /
@@ -25,22 +27,29 @@ endpoints — all listening, last-active wins. **Power**: USB-PD 15V / XT30 12-2
 
 ## 🖼️ Enclosure variants (6, one shared main board)
 
-| | | |
-|---|---|---|
-| ![Halo](docs/images/halo-3d.png) | ![Tiles](docs/images/tiles-3d.png) | ![Orb](docs/images/orb-3d.png) |
 | A "Halo" round unit | D "Tiles" magnetic modules | F "Orb" desk pet |
+|:---:|:---:|:---:|
+| ![Halo](docs/images/halo-3d.png) | ![Tiles](docs/images/tiles-3d.png) | ![Orb](docs/images/orb-3d.png) |
 
-![Soundbar](docs/images/soundbar-3d.png)
-*E "Soundbar" under-monitor bar — plus B "Console" (recommended primary) and C "Totem"; see the ID doc*
+| B "Console" (recommended primary) | E "Soundbar" (under-monitor) |
+|:---:|:---:|
+| ![Console](docs/images/console-3d.png) | ![Soundbar](docs/images/soundbar-3d.png) |
 
-## 📱 On-screen UI (six pages; PC-simulated = pixel-identical to firmware)
+> Plus C "Totem" vertical tower — see the [industrial design doc](docs/en/03-industrial-design.md).
 
-| | | |
-|---|---|---|
-| ![Home](docs/images/ui/ui-home.png) | ![Lighting](docs/images/ui/ui-light.png) | ![Wi-Fi](docs/images/ui/ui-wifi.png) |
+## 📱 On-screen UI (six pages + Light/Dark theme; PC-simulated = pixel-identical)
+
 | Home: state + I/O | Lighting | Wi-Fi |
+|:---:|:---:|:---:|
+| ![Home](docs/images/ui/ui-home.png) | ![Lighting](docs/images/ui/ui-light.png) | ![Wi-Fi](docs/images/ui/ui-wifi.png) |
+
+| Devices + sensors | Files | Music |
+|:---:|:---:|:---:|
 | ![Devices](docs/images/ui/ui-devices.png) | ![Files](docs/images/ui/ui-files.png) | ![Music](docs/images/ui/ui-music.png) |
-| Devices | Files | Music |
+
+| Dark theme (default) | Light theme |
+|:---:|:---:|
+| ![Home dark](docs/images/ui/ui-home.png) | ![Home light](docs/images/ui/ui-light-home.png) |
 
 ## 🚀 Quick start
 

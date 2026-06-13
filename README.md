@@ -18,28 +18,37 @@
 | 拾音电平 | RGB Bar(最长 160LED@329mm) | 中心展开 VU,MIC 本地闭环 |
 | 提示音 | ES8311 + 3W PA | 完成/注意/错误三种音色 |
 | 灯效模式 | 全部灯带 | OpenRGB 风格:常亮(调色)/呼吸/跑马灯/彩虹/关闭 |
+| 环境传感 | SHT4x / BMP280 / PCF8563 | 温湿度 / 气压 / RTC 时钟,Devices 页实时显示 |
+| 界面主题 | LCD | Light / Dark 双主题,Devices 页一键切换,NVS 持久化 |
 
 **三链路接入**:Wi-Fi(WebSocket + mDNS 自发现)/ CAN(SocketCAN)/ USB 自定义端点,
 同时在线自动择路。**电源**:USB-PD 15V / XT30 12-24V / 3×18650 平衡充,NVDC 无缝切换。
 
 ## 🖼️ 外观方案(6 款,共用同一主板)
 
-| | | |
-|---|---|---|
-| ![Halo](docs/images/halo-3d.png) | ![Tiles](docs/images/tiles-3d.png) | ![Orb](docs/images/orb-3d.png) |
 | A「Halo」圆形单体 | D「Tiles」磁吸模块 | F「Orb」球形桌宠 |
+|:---:|:---:|:---:|
+| ![Halo](docs/images/halo-3d.png) | ![Tiles](docs/images/tiles-3d.png) | ![Orb](docs/images/orb-3d.png) |
 
-![Soundbar](docs/images/soundbar-3d.png)
-*E「Soundbar」显示器下横条 —— 另有 B「Console」(推荐主力)与 C「Totem」竖塔,详见外观文档*
+| B「Console」(推荐主力款) | E「Soundbar」(显示器下横条) |
+|:---:|:---:|
+| ![Console](docs/images/console-3d.png) | ![Soundbar](docs/images/soundbar-3d.png) |
 
-## 📱 屏幕 UI(六页,PC 模拟器渲染 = 固件像素一致)
+> 另有 C「Totem」竖塔款,详见 [外观设计文档](docs/03-industrial-design.md)。
 
-| | | |
-|---|---|---|
-| ![Home](docs/images/ui/ui-home.png) | ![Lighting](docs/images/ui/ui-light.png) | ![Wi-Fi](docs/images/ui/ui-wifi.png) |
+## 📱 屏幕 UI(六页 + Light/Dark 主题,PC 模拟器渲染 = 固件像素一致)
+
 | Home 状态+IO 流 | Lighting 灯效 | Wi-Fi 连接 |
+|:---:|:---:|:---:|
+| ![Home](docs/images/ui/ui-home.png) | ![Lighting](docs/images/ui/ui-light.png) | ![Wi-Fi](docs/images/ui/ui-wifi.png) |
+
+| Devices 检测+传感器 | Files 浏览 | Music 播放 |
+|:---:|:---:|:---:|
 | ![Devices](docs/images/ui/ui-devices.png) | ![Files](docs/images/ui/ui-files.png) | ![Music](docs/images/ui/ui-music.png) |
-| Devices 设备检测 | Files 浏览 | Music 播放 |
+
+| Dark 主题(默认) | Light 主题 |
+|:---:|:---:|
+| ![Home dark](docs/images/ui/ui-home.png) | ![Home light](docs/images/ui/ui-light-home.png) |
 
 ## 🚀 快速开始
 
