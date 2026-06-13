@@ -16,15 +16,19 @@
 | 7 | AUDIO | ES8311 + MEMS MIC×2(模拟差分)+ NS4150B + SPK 座;PA_EN | I2S_BCLK/WS/DO/DI |
 | 8 | EXPAND | TJA1051T/3 + CAN 端子 + 终端跳线;microSD(1-bit);QMI8658C;Qwiic I2C 座;USB-C 数据口 | TWAI_TX/RX, SD_CLK/CMD/D0 |
 
-## 2. ESP32-S3 Pinmap v0.1
+## 2. ESP32-S3 Pinmap v0.2(ESP32-S3-DevKitC-1 N16R8)
 
-N16R8:GPIO35/36/37 被 Octal PSRAM 占用;GPIO19/20 为 USB D-/D+。
+> ⚠ **N16R8 关键约束**:GPIO26-32 = quad flash,**GPIO33-37 = octal PSRAM**,
+> 全部不可用(v0.1 误把 I2S 放 33/34,v0.2 已修正)。可用普通 GPIO 仅
+> 0-18、21、38-48 共 **29 个**;GPIO19/20 留作原生 USB(USB-Serial-JTAG:日志+下载+REPL)。
+
+下表为**默认 Profile A(Display + Audio + 背光)**,DevKitC-1 物理可点亮:
 
 | GPIO | 功能 | 网络 | 备注 |
 |---|---|---|---|
-| 0 | SD_CMD | SD_CMD | strapping(BOOT),上拉 10k,与 SD CMD 上拉兼容 |
+| 0 | (SD_CMD)/ 备用 | — | strapping(BOOT);Profile A 不接 SD,可留按键 |
 | 1 | I2S_BCLK | I2S_BCLK | ES8311 MCLK-from-SCLK 模式,省 MCLK 脚 |
-| 2 | SD_CLK | SD_CLK | |
+| 2 | (SD_CLK)/ 备用 | — | Profile A 不接 SD |
 | 3 | LCD_G4 | LCD_G4 | strapping(JTAG sel),仅作输出安全 |
 | 4–7 | LCD_B0–B3 | LCD_B0..3 | |
 | 8 | LCD_G3 | LCD_G3 | |
@@ -32,23 +36,38 @@ N16R8:GPIO35/36/37 被 Octal PSRAM 占用;GPIO19/20 为 USB D-/D+。
 | 14 | LCD_PCLK | LCD_PCLK | |
 | 15 | LCD_B4 | LCD_B4 | |
 | 16–18 | LCD_G0–G2 | LCD_G0..2 | |
-| 19/20 | USB D-/D+ | USB_DN/DP | TinyUSB(Vendor+CDC) |
+| 19/20 | USB D-/D+ | USB_DN/DP | **USB-Serial-JTAG**(日志/下载/REPL);与 TinyUSB device 互斥 |
 | 21 | I2S_WS | I2S_WS | |
-| 33 | I2S_DOUT | I2S_DO | → ES8311 SDIN |
-| 34 | I2S_DIN | I2S_DI | ← ES8311 SDOUT |
-| 38 | I2C_SDA | I2C_SDA | CST820/QMI8658C/TCA9554/INA226/MP2760,4.7k 上拉 |
+| 38 | I2C_SDA | I2C_SDA | CST820/QMI8658C/TCA9554/INA226/MP2760/SHT4x/BMP280/PCF8563,4.7k 上拉 |
 | 39 | I2C_SCL | I2C_SCL | |
 | 40 | LED_MATRIX | LED_M_DIN | RMT CH0,经 AHCT125 |
 | 41 | LED_AUX | LED_AUX_DIN | RMT CH1(circle+usage+拾音链) |
-| 42 | SD_D0 | SD_D0 | 1-bit SDMMC |
-| 43 | TWAI_TX | TWAI_TX | 不用 CAN 时可改 LCD_BL_PWM(焊位二选一) |
-| 44 | TWAI_RX | TWAI_RX | |
+| 42 | **I2S_DOUT** | I2S_DO | → ES8311 SDIN(v0.2:原 33)。启用 SD 时此脚复用 SD_D0 |
+| 43 | **LCD_BL_PWM** | BL_PWM | LEDC 背光调光 → 恒流 IC DIM 脚。启用 CAN 时复用 TWAI_TX |
+| 44 | **I2S_DIN** | I2S_DI | ← ES8311 SDOUT(v0.2:原 34)。启用 CAN 时复用 TWAI_RX |
 | 45 | LCD_VSYNC | LCD_VS | strapping(VDD_SPI),下拉默认即可 |
 | 46 | LCD_HSYNC | LCD_HS | strapping(ROM log),仅输出 |
 | 47 | LCD_DE | LCD_DE | |
 | 48 | LCD_G5 | LCD_G5 | RGB565 时 G 占 6 位 |
 
-**45/48 个 GPIO 全部用满**,慢速控制全部走 TCA9554:
+### Profile 与功能取舍(DevKitC-1)
+
+480×480 RGB565 屏吃掉 20 根 GPIO,叠加 I2C/LED/I2S/背光后 29 个可用脚已满,
+**无法再同时上板载 SD + CAN**。固件用 Kconfig 开关:
+
+| 功能 | Profile A(默认) | 启用方式 |
+|---|---|---|
+| LCD + 触摸 + I2C 传感器 | ✅ | — |
+| WS2812(matrix/circle/bar) | ✅ | — |
+| 音频(ES8311 全双工) | ✅ | — |
+| 背光 PWM 调光 | ✅ | — |
+| 板载 microSD | ❌(D0=42 与 I2S 冲突) | `CONFIG_AGENTIND_ENABLE_SD`,需禁音频或改接 |
+| CAN/TWAI | ❌(43/44 与背光/I2S 冲突) | `CONFIG_AGENTIND_ENABLE_CAN`,TWAI 经 GPIO matrix 改接空脚 |
+
+> 量产裸模组板若要全功能,需改用**串行 RGB(SPI/QSPI)屏**或加 IO 扩展/移位寄存器
+> 释放数据线;DevKitC-1 原型阶段按 Profile A 验证显示+音频+灯效+传感器链路即可。
+
+**29 个普通 GPIO 全部用满**,慢速控制走 TCA9554:
 
 | TCA9554 | 信号 |
 |---|---|
@@ -69,7 +88,7 @@ I2C 地址表:CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2
 
 | FPC 引脚 | 信号 | 接法 |
 |---|---|---|
-| LED_A / LED_K ×2 | 背光阳/阴极 | 背光驱动(5V0,~40mA),BL_EN 控制 |
+| LED_A / LED_K ×2 | 背光阳/阴极 | 经背光恒流驱动 IC(见 §2.2),非直接限流电阻 |
 | GND ×3 | 地 | — |
 | VCI | 面板电源 | VDD 3.3V |
 | RESET | 面板复位 | TCA9554 P0(LCD_RST) |
@@ -78,6 +97,32 @@ I2C 地址表:CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2
 | PCLK / DE / VSYNC / HSYNC | RGB 时序 | GPIO14 / 47 / 45 / 46 |
 | DB0–DB17 | 18-bit RGB 数据 | RGB565 接法:R4..0←DB17..13,G5..0←DB11..6,B4..0←DB5..1;**DB0、DB12 接地**(666→565 标准降位,以屏厂 datasheet 终核) |
 | TP_INT / TP_SDA / TP_SCL / TP_RESET / TP_VCI | CST820 触摸 | TCA9554 P7 / I2C_SDA / I2C_SCL / TCA9554 P1 / VDD |
+
+## 2.2 LCD 背光恒流驱动与调光
+
+**LED_A/LED_K 是屏内背光 LED 串的阳/阴极**(屏内已串/并好,只引出两端)。
+
+- **是否需要恒流**:取决于背光 LED 串联数。70mm 屏(≈3.9")典型 6~8 颗白光 LED。
+  若 2~3 串(Vf 合计 6~10V)> 5V 供电,**必须升压恒流**;若全并联/单串(~3.2V),
+  5V 经限流电阻或 LDO 恒流即可。**屏厂 If/Vf 规格待获取**,故默认按需升压恒流设计。
+- **方案(默认)**:**SGM3137 / ETA1611 / AW9364** 等 boost 背光恒流 IC——
+  宽输出电压(覆盖 1~多串)、内置恒流、带 PWM 调光脚。
+  - 输入 5V0,输出接 LED_A,LED_K → IC 的 ISET/FB(设定恒流,典型 15~20mA/串)。
+  - `EN` ← TCA9554 `EXP_LCD_BL_EN`(慢速开关);`DIM/PWM` ← MCU `GPIO43`(LEDC 2kHz PWM 调光)。
+- **亮度调节**:固件 `display_set_backlight(pct)`(LEDC 8-bit duty),Lighting 页亮度滑条
+  同时联动 LED 全局亮度与 LCD 背光;协议/控制台亦可驱动。
+- **低成本备选**:转接板预留 0Ω 跳线,可改成"限流电阻 + NMOS,栅极接 GPIO43 PWM"
+  的直驱方案(仅适用于低压单串背光)。
+- **注意**:GPIO43 在 DevKitC-1 上原为 U0TXD;本设计日志走 USB-Serial-JTAG(GPIO19/20),
+  故 43 释放给背光 PWM(见 §2 Profile A)。
+
+## 2.3 DevKitC-1 转接板说明
+
+原型以 **ESP32-S3-DevKitC-1(N16R8)** 插转接板实现。转接板承载:TCA9554、AHCT125
+电平转换、ES8311+NS4150B 音频、背光恒流 IC、LCD 40P FPC 座、WS2812 SH1.0 出口、
+Qwiic I2C(挂 IMU/SHT4x/BMP280/PCF8563)、各电源 DCDC。引脚映射见 §2,功能取舍见
+§2 Profile 表——DevKitC-1 默认 Profile A(显示+音频+背光+灯+传感器),SD/CAN 需
+Kconfig 开关并自行解决引脚复用。量产将转为裸模组 + §2 注释的串行屏/IO 扩展方案。
 
 ## 3. ST7701 初始化链路说明
 

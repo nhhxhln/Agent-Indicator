@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_vfs_fat.h"
+#include "sdkconfig.h"
 #include "sdmmc_cmd.h"
 
 static const char *TAG = "storage";
@@ -27,8 +28,12 @@ extern "C" esp_err_t storage_init(void)
     esp_spiffs_info("storage", &total, &used);
     ESP_LOGI(TAG, "spiffs %u/%u KB used", (unsigned)(used / 1024), (unsigned)(total / 1024));
 
+#if CONFIG_AGENTIND_ENABLE_SD
     if (storage_sd_mount() != ESP_OK)
         ESP_LOGW(TAG, "sd not mounted (no card?), use console `sd mount` later");
+#else
+    ESP_LOGI(TAG, "sd disabled (DevKitC-1 引脚复用);menuconfig 开 AGENTIND_ENABLE_SD");
+#endif
     return ESP_OK;
 }
 

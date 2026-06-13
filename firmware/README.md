@@ -37,6 +37,19 @@ main/
   power/power.c      遥测任务(INA226/MP2760/电池 ADC 待实装)
 ```
 
+## DevKitC-1 引脚 Profile(重要)
+
+目标板 **ESP32-S3-DevKitC-1(N16R8)** + 转接板。N16R8 的 **GPIO33-37 被 octal PSRAM 占用**,
+加上 480×480 RGB 屏吃掉 20 根 GPIO,29 个可用脚跑满后**无法同时再上 SD + CAN**:
+
+- 默认 **Profile A**:LCD + 触摸 + I2C 传感器 + WS2812 + 音频 + 背光 PWM 调光;
+- 日志/下载/REPL 走 **USB-Serial-JTAG**(原生 USB 口 GPIO19/20),与 TinyUSB device 互斥;
+- 背光:GPIO43 LEDC PWM → 恒流驱动 IC,亮度滑条联动 LED 全局亮度;
+- SD/CAN 默认**禁用**:`idf.py menuconfig` → Agent Indicator → `Enable on-board microSD` /
+  `Enable CAN/TWAI`(启用需自行解决引脚复用,见 docs/04 §2)。
+
+详见 [docs/04 §2](../docs/04-schematic-partition.md) pinmap v0.2 与 Profile 表。
+
 ## 测试控制台(USB Serial/JTAG,`idf.py monitor` 即可使用)
 
 | 命令 | 功能 |

@@ -33,7 +33,9 @@ void app_main(void)
     ESP_ERROR_CHECK(audio_start());
 
     ESP_ERROR_CHECK(comm_usb_start());
-    ESP_ERROR_CHECK(comm_twai_start());
+#if CONFIG_AGENTIND_ENABLE_CAN
+    ESP_ERROR_CHECK(comm_twai_start()); /* DevKitC-1 引脚冲突,默认禁用 */
+#endif
     ESP_ERROR_CHECK(comm_wifi_start()); /* 含 nvs/netif/event loop 初始化 */
 
     ESP_ERROR_CHECK(power_start());

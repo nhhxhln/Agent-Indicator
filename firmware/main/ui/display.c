@@ -24,6 +24,7 @@
 #include "freertos/task.h"
 #include "lvgl.h"
 #include "storage/storage.h"
+#include "driver/ledc.h"
 #include "drivers/sensors.h"
 #include "nvs.h"
 #include "ui/i18n.h"
@@ -55,6 +56,39 @@ static const uint32_t STATE_HEX[AGENT_STATE_MAX] = {
 };
 
 bool display_ready(void) { return s_ready; }
+
+/* 背光:LEDC PWM → 恒流驱动 IC 的 DIM 脚(亮度调节);EN 走 TCA9554 */
+static bool s_bl_inited = false;
+static void backlight_init(void)
+{
+    ledc_timer_config_t t = {
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .duty_resolution = LEDC_TIMER_8_BIT,
+        .timer_num = LEDC_TIMER_0,
+        .freq_hz = 2000,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    ledc_timer_config(&t);
+    ledc_channel_config_t c = {
+        .gpio_num = BOARD_LCD_BL_PWM,
+        .speed_mode = LEDC_LOW_SPEED_MODE,
+        .channel = LEDC_CHANNEL_0,
+        .timer_sel = LEDC_TIMER_0,
+        .duty = 0,
+        .hpoint = 0,
+    };
+    ledc_channel_config(&c);
+    s_bl_inited = true;
+}
+
+void display_set_backlight(int pct)
+{
+    if (!s_bl_inited) return; /* 无屏时空操作 */
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, pct * 255 / 100);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+}
 
 static esp_err_t panel_init(void)
 {
@@ -161,7 +195,9 @@ static esp_err_t panel_init(void)
         }
     }
 
-    io_expander_set(EXP_LCD_BL_EN, true);
+    io_expander_set(EXP_LCD_BL_EN, true); /* 恒流 IC EN */
+    backlight_init();
+    display_set_backlight(80);
     return ESP_OK;
 }
 
@@ -184,6 +220,7 @@ static void api_light_set(int mode, uint8_t r, uint8_t g, uint8_t b,
 {
     led_engine_set_fx((led_fx_t)mode, r, g, b, (uint8_t)speed);
     g_app.brightness = (uint8_t)(brightness * 255 / 100);
+    display_set_backlight(brightness); /* 亮度滑条同时调 LCD 背光 */
 }
 
 static void theme_persist(int dark)

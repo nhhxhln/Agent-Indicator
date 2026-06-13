@@ -1,5 +1,12 @@
-/* Agent Indicator 主板 pinmap v0.1 — 与 docs/04-schematic-partition.md §2 对应。
- * ESP32-S3-WROOM-1-N16R8:GPIO35/36/37 被 Octal PSRAM 占用,19/20 为 USB。 */
+/* Agent Indicator 主板 pinmap v0.2 — 与 docs/04-schematic-partition.md §2 对应。
+ *
+ * 目标平台 ESP32-S3-DevKitC-1(N16R8)+ 转接板。引脚约束:
+ *   - GPIO26-32 = quad flash;**GPIO33-37 = octal PSRAM**,全部不可用!
+ *     (v0.1 曾误把 I2S 放在 33/34,已修正为 42/44)
+ *   - GPIO19/20 = 原生 USB:做 USB-Serial-JTAG(日志+下载+REPL)
+ *   - 可用普通 GPIO 仅 0-18,21,38-48 共 29 个,跑满 480×480 RGB 屏(20 根)后
+ *     余量不足以同时再上 SD + CAN,故默认 Profile A(Display+Audio+背光),
+ *     SD/CAN 由 Kconfig 开关(与 I2S/背光引脚复用),详见 docs/04 §DevKitC-1。 */
 #pragma once
 
 /* ---- RGB LCD (ST7701, 16-bit RGB565) ---- */
@@ -58,14 +65,19 @@
 /* ---- I2S (ES8311, MCLK-from-SCLK) ---- */
 #define BOARD_I2S_BCLK      1
 #define BOARD_I2S_WS        21
-#define BOARD_I2S_DOUT      33
-#define BOARD_I2S_DIN       34
+#define BOARD_I2S_DOUT      42   /* v0.2: 原 33(octal PSRAM)→ 42 */
+#define BOARD_I2S_DIN       44   /* v0.2: 原 34(octal PSRAM)→ 44 */
 
-/* ---- SDMMC 1-bit ---- */
+/* ---- LCD 背光 PWM(恒流驱动 IC 的 DIM/PWM 脚,调光)---- */
+#define BOARD_LCD_BL_PWM    43   /* LEDC 调光;EN(开关)走 TCA9554 EXP_LCD_BL_EN */
+
+/* ---- SDMMC 1-bit ⚠ 默认禁用(CONFIG_AGENTIND_ENABLE_SD) ----
+ * D0=42 与 I2S_DOUT 复用;启用 SD 需禁用音频或在转接板改接。 */
 #define BOARD_SD_CLK        2
 #define BOARD_SD_CMD        0
 #define BOARD_SD_D0         42
 
-/* ---- TWAI(CAN)---- */
+/* ---- TWAI(CAN)⚠ 默认禁用(CONFIG_AGENTIND_ENABLE_CAN)----
+ * TX=43 与背光 PWM、RX=44 与 I2S_DIN 复用;TWAI 经 GPIO matrix 也可改接其他空脚。 */
 #define BOARD_TWAI_TX       43
 #define BOARD_TWAI_RX       44

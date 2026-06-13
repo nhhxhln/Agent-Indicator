@@ -17,4 +17,17 @@ menu "Agent Indicator"
         int "VLED current budget (mA)"
         default 4500
 
+    config AGENTIND_ENABLE_SD
+        bool "Enable on-board microSD (DevKitC-1: D0 conflicts with I2S DOUT)"
+        default n
+        help
+            DevKitC-1 GPIO 不足以同时跑 RGB 屏+音频+SD。启用前请在转接板上
+            为 SD 改接独立引脚,或禁用音频。
+
+    config AGENTIND_ENABLE_CAN
+        bool "Enable CAN/TWAI (DevKitC-1: conflicts with backlight PWM / I2S)"
+        default n
+        help
+            TWAI 经 GPIO matrix 可路由任意空脚;启用前确认引脚不与背光/I2S 冲突。
+
 endmenu

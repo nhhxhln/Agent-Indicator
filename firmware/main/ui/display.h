@@ -13,6 +13,7 @@ extern "C" {
 
 esp_err_t display_start(void);
 bool display_ready(void);
+void display_set_backlight(int pct); /* LCD 背光亮度 0-100(LEDC PWM) */
 
 #ifdef __cplusplus
 }

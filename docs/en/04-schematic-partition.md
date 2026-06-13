@@ -16,15 +16,21 @@
 | 7 | AUDIO | ES8311 + MEMS mics ×2 (analog diff) + NS4150B + SPK; PA_EN | I2S_BCLK/WS/DO/DI |
 | 8 | EXPAND | TJA1051T/3 + CAN header + term jumper; microSD (1-bit); QMI8658C; Qwiic; USB-C data | TWAI_TX/RX, SD_CLK/CMD/D0 |
 
-## 2. ESP32-S3 Pinmap v0.1
+## 2. ESP32-S3 Pinmap v0.2 (ESP32-S3-DevKitC-1 N16R8)
 
-N16R8: GPIO35/36/37 taken by octal PSRAM; GPIO19/20 are USB D-/D+.
+> ⚠ **N16R8 constraint**: GPIO26-32 = quad flash, **GPIO33-37 = octal PSRAM**,
+> all unusable (v0.1 wrongly placed I2S on 33/34, fixed in v0.2). Only 0-18, 21,
+> 38-48 (**29 pins**) are free; GPIO19/20 are kept for native USB (USB-Serial-JTAG:
+> log + flashing + REPL).
+
+Table below is the default **Profile A (Display + Audio + Backlight)**, physically
+bring-up-able on DevKitC-1:
 
 | GPIO | Function | Net | Notes |
 |---|---|---|---|
-| 0 | SD_CMD | SD_CMD | strapping (BOOT), 10k pull-up compatible with SD CMD |
+| 0 | (SD_CMD) / spare | — | strapping (BOOT); no SD in Profile A |
 | 1 | I2S_BCLK | I2S_BCLK | ES8311 MCLK-from-SCLK mode saves the MCLK pin |
-| 2 | SD_CLK | SD_CLK | |
+| 2 | (SD_CLK) / spare | — | no SD in Profile A |
 | 3 | LCD_G4 | LCD_G4 | strapping (JTAG sel), output-only is safe |
 | 4–7 | LCD_B0–B3 | LCD_B0..3 | |
 | 8 | LCD_G3 | LCD_G3 | |
@@ -32,23 +38,62 @@ N16R8: GPIO35/36/37 taken by octal PSRAM; GPIO19/20 are USB D-/D+.
 | 14 | LCD_PCLK | LCD_PCLK | |
 | 15 | LCD_B4 | LCD_B4 | |
 | 16–18 | LCD_G0–G2 | LCD_G0..2 | |
-| 19/20 | USB D-/D+ | USB_DN/DP | TinyUSB (vendor+CDC) |
+| 19/20 | USB D-/D+ | USB_DN/DP | **USB-Serial-JTAG** (log/flash/REPL); exclusive with TinyUSB device |
 | 21 | I2S_WS | I2S_WS | |
-| 33 | I2S_DOUT | I2S_DO | → ES8311 SDIN |
-| 34 | I2S_DIN | I2S_DI | ← ES8311 SDOUT |
-| 38 | I2C_SDA | I2C_SDA | CST820/QMI8658C/TCA9554/INA226/MP2760, 4.7k pull-ups |
+| 38 | I2C_SDA | I2C_SDA | CST820/QMI8658C/TCA9554/INA226/MP2760/SHT4x/BMP280/PCF8563, 4.7k pull-ups |
 | 39 | I2C_SCL | I2C_SCL | |
 | 40 | LED_MATRIX | LED_M_DIN | RMT CH0 via AHCT125 |
 | 41 | LED_AUX | LED_AUX_DIN | RMT CH1 (circle+usage+mic chain) |
-| 42 | SD_D0 | SD_D0 | 1-bit SDMMC |
-| 43 | TWAI_TX | TWAI_TX | swappable for LCD_BL_PWM if CAN unused (solder option) |
-| 44 | TWAI_RX | TWAI_RX | |
+| 42 | **I2S_DOUT** | I2S_DO | → ES8311 SDIN (v0.2: was 33). Shares SD_D0 if SD enabled |
+| 43 | **LCD_BL_PWM** | BL_PWM | LEDC backlight dimming → constant-current IC DIM. Shares TWAI_TX if CAN enabled |
+| 44 | **I2S_DIN** | I2S_DI | ← ES8311 SDOUT (v0.2: was 34). Shares TWAI_RX if CAN enabled |
 | 45 | LCD_VSYNC | LCD_VS | strapping (VDD_SPI), default pull-down is fine |
 | 46 | LCD_HSYNC | LCD_HS | strapping (ROM log), output only |
 | 47 | LCD_DE | LCD_DE | |
 | 48 | LCD_G5 | LCD_G5 | G uses 6 bits in RGB565 |
 
-**All 45 usable GPIOs are consumed**; slow controls go through TCA9554:
+### Profiles & trade-offs (DevKitC-1)
+
+The 480×480 RGB565 panel eats 20 GPIOs; with I2C/LED/I2S/backlight the 29 free pins
+are full — **on-board SD and CAN can't both be added simultaneously**. Kconfig switches:
+
+| Feature | Profile A (default) | Enable |
+|---|---|---|
+| LCD + touch + I2C sensors | ✅ | — |
+| WS2812 (matrix/circle/bar) | ✅ | — |
+| Audio (ES8311 full-duplex) | ✅ | — |
+| Backlight PWM dimming | ✅ | — |
+| On-board microSD | ❌ (D0=42 clashes I2S) | `CONFIG_AGENTIND_ENABLE_SD`, disable audio or re-route |
+| CAN/TWAI | ❌ (43/44 clash backlight/I2S) | `CONFIG_AGENTIND_ENABLE_CAN`, re-route TWAI via GPIO matrix |
+
+> A production bare-module board wanting full features needs a **serial RGB (SPI/QSPI)
+> panel** or IO expanders / shift registers to free up data lines; DevKitC-1 prototyping
+> validates display+audio+LEDs+sensors via Profile A.
+
+## 2.2 LCD Backlight Constant-Current Driver & Dimming
+
+**LED_A/LED_K are the anode/cathode of the panel's internal backlight LED string.**
+
+- **Constant current needed?** Depends on series count. A 70mm panel typically has 6~8
+  white LEDs. If 2~3 in series (Vf 6~10V) > 5V supply, a **boost constant-current driver
+  is required**; an all-parallel/single string (~3.2V) can use a resistor or LDO CC.
+  Panel If/Vf spec TBD, so a boost CC driver is the default (covers both).
+- **Default**: a boost backlight CC IC like **SGM3137 / ETA1611 / AW9364** — wide output,
+  built-in CC, PWM dimming pin. `EN` ← TCA9554 `EXP_LCD_BL_EN` (slow on/off);
+  `DIM/PWM` ← MCU `GPIO43` (LEDC 2kHz PWM).
+- **Dimming**: firmware `display_set_backlight(pct)` (LEDC 8-bit duty); the Lighting page
+  brightness slider drives both LED global brightness and the LCD backlight.
+- **Low-cost fallback**: a 0Ω jumper on the adapter allows a "resistor + NMOS, gate on
+  GPIO43 PWM" direct drive (low-voltage single string only).
+
+## 2.3 DevKitC-1 Adapter Board
+
+The prototype is an **ESP32-S3-DevKitC-1 (N16R8)** on an adapter carrying TCA9554,
+AHCT125 level shifter, ES8311+NS4150B audio, backlight CC IC, the LCD 40P FPC socket,
+WS2812 SH1.0 outlets, a Qwiic I2C header (IMU/SHT4x/BMP280/PCF8563) and the power DCDCs.
+See §2 for the pinmap and Profile trade-offs.
+
+**All 29 usable GPIOs are consumed**; slow controls go through TCA9554:
 
 | TCA9554 | Signal |
 |---|---|
@@ -69,7 +114,7 @@ Module: ST7701 + CST820, outline 73.03 × 76.48 × **2.34mm**, AA 70.13×70.13, 
 
 | FPC pin | Signal | Connection |
 |---|---|---|
-| LED_A / LED_K ×2 | backlight anode/cathodes | backlight driver (5V0, ~40mA), gated by BL_EN |
+| LED_A / LED_K ×2 | backlight anode/cathodes | via a constant-current backlight driver (see §2.2), not a bare resistor |
 | GND ×3 | ground | — |
 | VCI | panel supply | VDD 3.3V |
 | RESET | panel reset | TCA9554 P0 (LCD_RST) |
