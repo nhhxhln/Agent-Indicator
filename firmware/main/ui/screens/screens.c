@@ -28,7 +28,6 @@ const lv_font_t *g_ui_font = NULL; /* NULL = 用 LVGL 默认字体 */
 static lv_obj_t *s_state_dot, *s_state_label;
 static lv_obj_t *s_textarea;
 static lv_obj_t *s_bar_session, *s_bar_limit, *s_ctx_arc, *s_ctx_label;
-static lv_obj_t *s_tabview;
 
 lv_obj_t *ui_card(lv_obj_t *parent)
 {
@@ -138,7 +137,53 @@ out:
     ui_unlock();
 }
 
-/* ---- 根:tabview(build 纯建对象,可重建) ---- */
+/* ---- 圆形屏导航(480 圆,内容限制在安全区,底部居中 pill)----
+ * 不用 lv_tabview:其全宽底栏与贴边内容在圆形面板上四角会被裁切。
+ * 安全区:内容容器 320×300 居中于上方,导航 pill 宽 290 居中于底部弦内。 */
+#define UI_PAGES 6
+static lv_obj_t *s_pages[UI_PAGES];
+static lv_obj_t *s_nav_btn[UI_PAGES];
+static int s_cur;
+
+static void show_page(int i)
+{
+    if (i < 0 || i >= UI_PAGES) return;
+    for (int k = 0; k < UI_PAGES; k++) {
+        if (k == i) lv_obj_remove_flag(s_pages[k], LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(s_pages[k], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_opa(s_nav_btn[k], k == i ? LV_OPA_COVER : LV_OPA_0, 0);
+    }
+    s_cur = i;
+}
+
+void ui_screens_goto(int idx) { show_page(idx); }
+
+static void nav_cb(lv_event_t *e)
+{
+    show_page((int)(intptr_t)lv_event_get_user_data(e));
+}
+
+/* 建一页:全屏底板 + 居中安全区容器,返回安全区供各页填充 */
+static lv_obj_t *make_page(void)
+{
+    lv_obj_t *p = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(p, 480, 480);
+    lv_obj_set_pos(p, 0, 0);
+    lv_obj_set_style_bg_color(p, t_bg(), 0);
+    lv_obj_set_style_border_width(p, 0, 0);
+    lv_obj_set_style_radius(p, 0, 0);
+    lv_obj_set_style_pad_all(p, 0, 0);
+    lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *safe = lv_obj_create(p);
+    lv_obj_set_size(safe, 320, 300);            /* 320×300 落在 R240 圆内 */
+    lv_obj_align(safe, LV_ALIGN_TOP_MID, 0, 66); /* 顶部留 66px 圆窄区 */
+    lv_obj_set_style_bg_opa(safe, LV_OPA_0, 0);
+    lv_obj_set_style_border_width(safe, 0, 0);
+    lv_obj_set_style_pad_all(safe, 2, 0);
+    return safe;
+}
+
 static void build(void)
 {
     /* 内置控件(默认 label/button/slider)跟随 Light/Dark 主题 */
@@ -149,19 +194,49 @@ static void build(void)
     lv_display_set_theme(disp, th);
 
     lv_obj_t *scr = lv_screen_active();
-    lv_obj_set_style_bg_color(scr, t_bg(), 0);
+    lv_obj_set_style_bg_color(scr, lv_color_black(), 0); /* 圆外不可见 */
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_tabview = lv_tabview_create(scr);
-    lv_tabview_set_tab_bar_position(s_tabview, LV_DIR_BOTTOM);
-    lv_tabview_set_tab_bar_size(s_tabview, 52);
-    lv_obj_set_style_bg_color(lv_tabview_get_content(s_tabview), t_bg(), 0);
+    typedef void (*creator_t)(lv_obj_t *);
+    static const creator_t creators[UI_PAGES] = {
+        ui_tab_home_create, ui_tab_light_create, ui_tab_wifi_create,
+        ui_tab_devices_create, ui_tab_files_create, ui_tab_music_create,
+    };
+    for (int i = 0; i < UI_PAGES; i++) {
+        lv_obj_t *safe = make_page();
+        s_pages[i] = lv_obj_get_parent(safe);
+        creators[i](safe);
+    }
 
-    ui_tab_home_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_HOME));
-    ui_tab_light_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_TINT));
-    ui_tab_wifi_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_WIFI));
-    ui_tab_devices_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_SETTINGS));
-    ui_tab_files_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_DIRECTORY));
-    ui_tab_music_create(lv_tabview_add_tab(s_tabview, LV_SYMBOL_AUDIO));
+    /* 底部 pill 导航(宽 290 @ 底部弦内) */
+    static const char *icons[UI_PAGES] = {
+        LV_SYMBOL_HOME, LV_SYMBOL_TINT, LV_SYMBOL_WIFI,
+        LV_SYMBOL_SETTINGS, LV_SYMBOL_DIRECTORY, LV_SYMBOL_AUDIO,
+    };
+    lv_obj_t *nav = lv_obj_create(scr);
+    lv_obj_set_size(nav, 290, 52);
+    lv_obj_align(nav, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_set_style_radius(nav, 26, 0);
+    lv_obj_set_style_bg_color(nav, t_card(), 0);
+    lv_obj_set_style_border_color(nav, t_border(), 0);
+    lv_obj_set_style_border_width(nav, 1, 0);
+    lv_obj_set_style_pad_hor(nav, 4, 0);
+    lv_obj_set_flex_flow(nav, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(nav, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(nav, LV_OBJ_FLAG_SCROLLABLE);
+    for (int i = 0; i < UI_PAGES; i++) {
+        lv_obj_t *b = lv_button_create(nav);
+        lv_obj_set_size(b, 42, 42);
+        lv_obj_set_style_radius(b, 21, 0);
+        lv_obj_set_style_shadow_width(b, 0, 0);
+        lv_obj_t *l = lv_label_create(b);
+        lv_label_set_text(l, icons[i]);
+        lv_obj_center(l);
+        lv_obj_add_event_cb(b, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        s_nav_btn[i] = b;
+    }
+    show_page(0);
 }
 
 lv_obj_t *ui_screens_create(const ui_host_api_t *api, int dark)
@@ -169,14 +244,12 @@ lv_obj_t *ui_screens_create(const ui_host_api_t *api, int dark)
     if (api) g_ui_api = api;
     g_ui_dark = dark ? 1 : 0;
     build();
-    return s_tabview;
+    return lv_screen_active();
 }
 
 int ui_screens_is_dark(void) { return g_ui_dark; }
 
 void ui_set_font(const lv_font_t *font) { g_ui_font = font; }
-
-lv_obj_t *ui_screens_tabview(void) { return s_tabview; }
 
 void ui_screens_set_theme(int dark)
 {

@@ -11,7 +11,7 @@
 | 2 | CHARGER | MP2760 + 电感/采样电阻;S-8254A+双 NMOS;HY2213×3;电池分压采样 | VSYS, VBAT, BAT_ADC1-3 |
 | 3 | DCDC | TPS56637(VLED)+ 前级 PMOS;MP2315S(5V0);TPS2121(VUSB mux);SGM2212(VDD);VAUDIO 滤波;INA226 | VLED, 5V0, 5V0_SYS, VDD, VAUDIO |
 | 4 | MCU | ESP32-S3-WROOM-1-N16R8;复位/BOOT 按键;策略电阻;TCA9554 | EN, IO0, I2C_SDA/SCL |
-| 5 | LCD-TOUCH | 40P FPC 座(ST7701 RGB);初始化 SPI 跳线借用 D 线;背光驱动;CST820 FPC | LCD_D0-15, PCLK, HS, VS, DE |
+| 5 | LCD-TOUCH | 40P FPC 座(ST7701 RGB);初始化 SPI 跳线借用 D 线;背光驱动;CST836U FPC | LCD_D0-15, PCLK, HS, VS, DE |
 | 6 | LED | SN74AHCT125 电平转换 ×2 通道;VLED PMOS 开关;3×SH1.0-3P 出口 + 防护(33Ω 串阻 + ESD) | LED_M_DIN, LED_AUX_DIN |
 | 7 | AUDIO | ES8311 + MEMS MIC×2(模拟差分)+ NS4150B + SPK 座;PA_EN | I2S_BCLK/WS/DO/DI |
 | 8 | EXPAND | TJA1051T/3 + CAN 端子 + 终端跳线;microSD(1-bit);QMI8658C;Qwiic I2C 座;USB-C 数据口 | TWAI_TX/RX, SD_CLK/CMD/D0 |
@@ -38,7 +38,7 @@
 | 16–18 | LCD_G0–G2 | LCD_G0..2 | |
 | 19/20 | USB D-/D+ | USB_DN/DP | **USB-Serial-JTAG**(日志/下载/REPL);与 TinyUSB device 互斥 |
 | 21 | I2S_WS | I2S_WS | |
-| 38 | I2C_SDA | I2C_SDA | CST820/QMI8658C/TCA9554/INA226/MP2760/SHT4x/BMP280/PCF8563,4.7k 上拉 |
+| 38 | I2C_SDA | I2C_SDA | CST836U/QMI8658C/TCA9554/INA226/MP2760/SHT4x/BMP280/PCF8563,4.7k 上拉 |
 | 39 | I2C_SCL | I2C_SCL | |
 | 40 | LED_MATRIX | LED_M_DIN | RMT CH0,经 AHCT125 |
 | 41 | LED_AUX | LED_AUX_DIN | RMT CH1(circle+usage+拾音链) |
@@ -72,7 +72,7 @@
 | TCA9554 | 信号 |
 |---|---|
 | P0 | LCD_RST |
-| P1 | TP_RST(CST820) |
+| P1 | TP_RST(CST836U) |
 | P2 | LCD_BL_EN |
 | P3 | PA_EN(NS4150B) |
 | P4 | LED_PWR_EN(VLED PMOS) |
@@ -80,11 +80,11 @@
 | P6 | CHG_INT(MP2760 中断,输入) |
 | P7 | TP_INT(输入;触摸采用 20ms 轮询,INT 仅作唤醒辅助) |
 
-I2C 地址表:CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2760 0x5C(待核) · 24C02(D 方案模块)0x50-0x53。
+I2C 地址表:CST836U 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2760 0x5C(待核) · 24C02(D 方案模块)0x50-0x53。
 
 ## 2.1 LCD 40P FPC 引脚定义(实物规格)
 
-模组:ST7701 + CST820,结构 73.03 × 76.48 × **2.34mm**,AA 70.13×70.13,SPI/RGB 双模。
+模组:ST7701 + CST836U,结构 73.03 × 76.48 × **2.34mm**,AA 70.13×70.13,SPI/RGB 双模。
 
 | FPC 引脚 | 信号 | 接法 |
 |---|---|---|
@@ -96,23 +96,23 @@ I2C 地址表:CST820 0x15 · TCA9554 0x20 · QMI8658C 0x6B · INA226 0x40 · MP2
 | SDA / SCK / CS | 初始化 SPI(9-bit 3-wire) | SDA←LCD_G0 网络,SCK←LCD_PCLK 网络,CS←TCA9554 P5;面板有独立 SPI 脚,无需在面板侧复用,仅 MCU 侧借 RGB 引脚 |
 | PCLK / DE / VSYNC / HSYNC | RGB 时序 | GPIO14 / 47 / 45 / 46 |
 | DB0–DB17 | 18-bit RGB 数据 | RGB565 接法:R4..0←DB17..13,G5..0←DB11..6,B4..0←DB5..1;**DB0、DB12 接地**(666→565 标准降位,以屏厂 datasheet 终核) |
-| TP_INT / TP_SDA / TP_SCL / TP_RESET / TP_VCI | CST820 触摸 | TCA9554 P7 / I2C_SDA / I2C_SCL / TCA9554 P1 / VDD |
+| TP_INT / TP_SDA / TP_SCL / TP_RESET / TP_VCI | CST836U 触摸 | TCA9554 P7 / I2C_SDA / I2C_SCL / TCA9554 P1 / VDD |
 
 ## 2.2 LCD 背光恒流驱动与调光
 
 **LED_A/LED_K 是屏内背光 LED 串的阳/阴极**(屏内已串/并好,只引出两端)。
 
-- **是否需要恒流**:取决于背光 LED 串联数。70mm 屏(≈3.9")典型 6~8 颗白光 LED。
-  若 2~3 串(Vf 合计 6~10V)> 5V 供电,**必须升压恒流**;若全并联/单串(~3.2V),
-  5V 经限流电阻或 LDO 恒流即可。**屏厂 If/Vf 规格待获取**,故默认按需升压恒流设计。
-- **方案(默认)**:**SGM3137 / ETA1611 / AW9364** 等 boost 背光恒流 IC——
-  宽输出电压(覆盖 1~多串)、内置恒流、带 PWM 调光脚。
-  - 输入 5V0,输出接 LED_A,LED_K → IC 的 ISET/FB(设定恒流,典型 15~20mA/串)。
-  - `EN` ← TCA9554 `EXP_LCD_BL_EN`(慢速开关);`DIM/PWM` ← MCU `GPIO43`(LEDC 2kHz PWM 调光)。
-- **亮度调节**:固件 `display_set_backlight(pct)`(LEDC 8-bit duty),Lighting 页亮度滑条
+**已确认背光规格**:**If = 80mA,Vf 典型 3.2V(Min 2.8 / Max 3.3V)**。
+Vf < 5V0 → **不需要升压(boost),用低压线性恒流即可**(单串/全并联结构)。
+
+- **方案(默认)**:**5V0 输入的低压线性恒流源**,恒流 80mA:
+  - 恒流 IC 首选 **NSI45080**(定值 80mA)或 **BCR401U / AMC7140**(可设),SOT-23/89 封装,外围简单;
+  - 压差 (5.0−3.2)×0.08 ≈ **0.144W** 损耗,小封装 + 铺铜即可;
+  - `EN` ← TCA9554 `EXP_LCD_BL_EN`(慢速开关);`PWM/CTRL` ← MCU `GPIO43`(LEDC 2kHz PWM 调光)。
+- **更省成本**:5V0 经限流电阻直驱——R ≈ (5.0−3.2)/0.08 ≈ **22Ω**,功耗 ~0.14W(0805/1206)。
+  缺点:电流随 Vf/温漂变化、亮度一致性差。转接板预留 0Ω 跳线在"恒流 IC / 电阻"间二选一。
+- **亮度调节**:固件 `display_set_backlight(pct)`(LEDC 8-bit duty)斩波,Lighting 页亮度滑条
   同时联动 LED 全局亮度与 LCD 背光;协议/控制台亦可驱动。
-- **低成本备选**:转接板预留 0Ω 跳线,可改成"限流电阻 + NMOS,栅极接 GPIO43 PWM"
-  的直驱方案(仅适用于低压单串背光)。
 - **注意**:GPIO43 在 DevKitC-1 上原为 U0TXD;本设计日志走 USB-Serial-JTAG(GPIO19/20),
   故 43 释放给背光 PWM(见 §2 Profile A)。
 
@@ -156,5 +156,5 @@ RGB 屏需先经 3-wire 9-bit SPI 写初始化序列。借用方式(Espressif EV
 
 - VLED 5A 路径:2oz 铜 + ≥4mm 走线宽,buck 出口直达 LED 连接器。
 - Wi-Fi 天线区净空 ≥15×6mm,下方禁布。
-- MIC 模拟走线包地,远离 PCLK(16MHz)与 buck 开关节点。
-- RGB LCD 16 根数据线等长(±5mm 内即可,16MHz 不敏感),整组包地。
+- MIC 模拟走线包地,远离 PCLK(20MHz)与 buck 开关节点。
+- RGB LCD 16 根数据线等长(±5mm 内即可,20MHz 下不敏感),整组包地。

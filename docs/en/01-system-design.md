@@ -11,7 +11,7 @@
 | LLM usage display | RGB Bar (20-LED vertical, segmented) | Multi-slot percentage bars: session usage, 5h/weekly limits |
 | LLM status display | RGB Circle (24 LEDs) | Animations for idle / thinking / responding / tool-use / error |
 | LLM context display | RGB Matrix (8×8; firmware supports 4 tiles as 16×16) | Context-window heat map / category color blocks |
-| LLM input/output | LCD (ST7701 480×480 + CST820 touch) | Scrolling prompt/response digest, touch paging |
+| LLM input/output | LCD (ST7701 480×480 + CST836U touch) | Scrolling prompt/response digest, touch paging |
 | Mic level | RGB Bar (long horizontal) | Local mic VU meter / tone visualization |
 | Tones / voice pickup | I2S codec + PA + MEMS mic | Task-done chimes, voice input level |
 
@@ -26,7 +26,7 @@ Expansion interfaces: SDMMC (assets/recordings), CAN/TWAI (bus access), USB Devi
   │ agentind     │ WiFi │  │           ESP32-S3-WROOM-1-N16R8     │  │
   │ (Python      │◄────►│  │                                      │  │
   │  bridge)     │ CAN  │  │ RGB-LCD16bit ──► ST7701 480×480 LCD  │  │
-  │  - sources   │◄────►│  │ I2C ──► CST820 / QMI8658C / TCA9554  │  │
+  │  - sources   │◄────►│  │ I2C ──► CST836U / QMI8658C / TCA9554  │  │
   │  - protocol  │ USB  │  │            / INA226 / MP2760         │  │
   │  - transports│◄────►│  │ RMT×2 ──► WS2812B Matrix / Ring+Bars │  │
   └──────────────┘      │  │ I2S ──► ES8311 ──► NS4150B ──► SPK   │  │
@@ -59,7 +59,7 @@ Note: octal PSRAM on the N16R8 occupies GPIO35/36/37 — see the pinmap in doc 0
 | Audio PA | **NS4150B** | MAX98357 (pure I2S) | 3W class-D, same pairing as Espressif dev boards; EN on the IO expander |
 | MIC | **MSM261 (analog MEMS) → ES8311 MIC_IN** | INMP441 (I2S digital) | Analog input via codec saves I2S lines; VU computed in firmware (RMS) |
 | IMU | **QMI8658C** | LSM6DS3TR-C | 6-axis, I2C, tap/raise interrupts; cheap and well documented; used for tap interaction and orientation flip |
-| Touch | **CST820** (with panel) | — | I2C 0x15, same protocol family as CST816, works with `esp_lcd_touch_cst816s` |
+| Touch | **CST836U** (with panel) | — | I2C 0x15, same protocol family as CST816, works with `esp_lcd_touch_cst816s` |
 | IO expander | **TCA9554** | PCA9554 | LCD_RST / TP_RST / PA_EN / BL_EN / LED_PWR_EN and other slow controls; relieves GPIO pressure |
 | Current monitor | **INA226** | INA219 | High-side on VSYS; battery/power telemetry |
 | LED level shifter | **SN74AHCT125** | 74HCT245 | 3.3V→5V data; WS2812B at 5V needs VIH=3.5V, shifting is mandatory |
@@ -88,8 +88,8 @@ Power-chain parts (CH224K / MP2760 / S-8254A / HY2213 / TPS56637 / MP2315S / TPS
 
 ### 4.2 LCD subsystem
 
-- `esp_lcd` RGB panel + `esp_lcd_st7701` (managed component), dual bounce buffers against PSRAM bandwidth jitter; PCLK from 16MHz.
-- LVGL 9 (`esp_lvgl_port`): I/O text stream page, status page, settings; CST820 swipe paging.
+- `esp_lcd` RGB panel + `esp_lcd_st7701` (managed component), dual bounce buffers against PSRAM bandwidth jitter; PCLK from 20MHz.
+- LVGL 9 (`esp_lvgl_port`): I/O text stream page, status page, settings; CST836U swipe paging.
 - Backlight: BL_EN (TCA9554) on/off + content-adaptive dimming; hardware PWM dimming possible by sacrificing TWAI_TX (noted in pinmap).
 
 ### 4.3 Audio subsystem

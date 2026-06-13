@@ -1,11 +1,17 @@
 # Agent Indicator — 屏幕 UI 设计
 
-> Rev 0.1 · English version: [en/05-ui-design.md](en/05-ui-design.md)
+> Rev 0.2 · English version: [en/05-ui-design.md](en/05-ui-design.md)
 > 截图由 `tools/ui_sim`(LVGL PC 无头渲染)生成,与固件渲染像素一致。
 > UI 代码位于 `firmware/main/ui/screens/`,固件与模拟器共用同一份源码。
 
-整体结构:480×480 深色主题,底部 6 个 Tab(LVGL tabview),触摸切换。
-所有页面的数据更新接口(`ui_*_set`)内部带锁,可从任意任务调用。
+**⚠ 圆形屏适配**:LCD 为 **480×480 圆形**显示区(AA 内的圆,四角不可见),
+故 UI **不用 lv_tabview**(其全宽底栏与贴边卡片的四角会被圆裁掉)。改为:
+
+- 内容限制在**居中安全区**(320×300,落在 R240 圆内),顶部留 66px 圆窄区;
+- 导航为**底部居中 pill**(宽 290,落在底部弦内),6 图标切页;
+- 截图均叠加圆形遮罩呈现真实可视区,圆外为面板外壳。
+
+所有页面的数据更新接口(`ui_*_set`)内部带锁,可从任意任务调用;支持 Light/Dark 主题(§7)。
 
 ## 1. Home — 状态与 I/O 流
 
@@ -45,7 +51,7 @@
    | 设备 | 地址 | 说明 |
    |---|---|---|
    | TCA9554 IO expander | 0x20 | 慢速控制扩展 |
-   | CST820 touch | 0x15 | 电容触摸 |
+   | CST836U touch | 0x15 | 电容触摸 |
    | QMI8658C IMU | 0x6B | 6 轴 |
    | ES8311 codec | I2S | 音频 |
    | INA226 monitor | 0x40 | 功耗遥测 |

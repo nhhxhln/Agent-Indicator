@@ -11,7 +11,7 @@
 | LLM Usage 展示 | RGB Bar(20 LED 竖条/分段) | 会话用量、5h/周限额等多槽位百分比条 |
 | LLM Status 展示 | RGB Circle(24 LED) | idle / thinking / responding / tool-use / error 等状态动画 |
 | LLM Context 展示 | RGB Matrix(8×8,固件兼容 4 块拼 16×16) | context window 占用热力图 / 分类色块 |
-| LLM 输入输出 | LCD(ST7701 480×480 + CST820 触摸) | 滚动显示 prompt/response 摘要,触摸翻页 |
+| LLM 输入输出 | LCD(ST7701 480×480 + CST836U 触摸) | 滚动显示 prompt/response 摘要,触摸翻页 |
 | 拾音电平 | RGB Bar(横向长条) | 本地 MIC VU 表 / 提示音可视化 |
 | 提示音 / 拾音 | I2S Codec + PA + MEMS MIC | 任务完成提示音、语音输入电平 |
 
@@ -26,7 +26,7 @@
   │ agentind     │ WiFi │  │           ESP32-S3-WROOM-1-N16R8     │  │
   │ (Python 转发)│◄────►│  │                                      │  │
   │  - 状态源    │ CAN  │  │ RGB-LCD16bit ──► ST7701 480×480 LCD  │  │
-  │  - 协议编码  │◄────►│  │ I2C ──► CST820 / QMI8658C / TCA9554  │  │
+  │  - 协议编码  │◄────►│  │ I2C ──► CST836U / QMI8658C / TCA9554  │  │
   │  - 多路传输  │ USB  │  │            / INA226 / MP2760         │  │
   └──────────────┘◄────►│  │ RMT×2 ──► WS2812B Matrix / Ring+Bars │  │
                         │  │ I2S ──► ES8311 ──► NS4150B ──► SPK   │  │
@@ -58,7 +58,7 @@
 | Audio PA | **NS4150B** | MAX98357(纯 I2S 方案) | 3W Class-D,Espressif 官方板同款搭配;EN 脚接 IO 扩展器 |
 | MIC | **MSM261(模拟 MEMS)→ ES8311 MIC_IN** | INMP441(I2S 数字,需多占线) | 走 codec 模拟输入,省 I2S 线;拾音条 VU 由固件 RMS 计算 |
 | IMU | **QMI8658C** | LSM6DS3TR-C | 6 轴,I2C,带敲击/抬手中断,资料多价格低;用于敲击交互、姿态感知翻转显示 |
-| 触摸 | **CST820**(随屏) | — | I2C 0x15,与 CST816 同协议族,可用 `esp_lcd_touch_cst816s` 驱动 |
+| 触摸 | **CST836U**(随屏) | — | I2C 0x15,与 CST816 同协议族,可用 `esp_lcd_touch_cst816s` 驱动 |
 | IO 扩展 | **TCA9554** | PCA9554 | LCD_RST / TP_RST / PA_EN / BL_EN / LED_PWR_EN 等慢速控制,缓解 GPIO 紧张 |
 | 电流监控 | **INA226** | INA219 | 挂 VSYS 高侧,电量/功耗遥测上报 |
 | LED 电平转换 | **SN74AHCT125** | 74HCT245 | 3.3V→5V 数据,WS2812B 在 5V 供电下 VIH=3.5V,必须转换 |
@@ -87,8 +87,8 @@
 
 ### 4.2 LCD 子系统
 
-- `esp_lcd` RGB panel + `esp_lcd_st7701`(managed component),双 bounce buffer 抗 PSRAM 带宽抖动;PCLK 16MHz 起步。
-- LVGL 9(`esp_lvgl_port`):I/O 文本流页面、状态页、设置页;CST820 触摸滑动切页。
+- `esp_lcd` RGB panel + `esp_lcd_st7701`(managed component),双 bounce buffer 抗 PSRAM 带宽抖动;PCLK 20MHz 起步(后期可上调)。
+- LVGL 9(`esp_lvgl_port`):I/O 文本流页面、状态页、设置页;CST836U 触摸滑动切页。
 - 背光:BL_EN(TCA9554)开关 + 屏内容自适应调光;若需硬件 PWM 调光,牺牲 TWAI_TX 引脚换(pinmap 中注明)。
 
 ### 4.3 音频子系统

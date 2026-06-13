@@ -125,10 +125,9 @@ static void shoot_all(const char *out, const char *prefix)
 {
     static const char *names[6] = { "home", "light", "wifi",
                                     "devices", "files", "music" };
-    lv_obj_t *tv = ui_screens_tabview();
     char path[256];
     for (int i = 0; i < 6; i++) {
-        lv_tabview_set_active(tv, i, LV_ANIM_OFF);
+        ui_screens_goto(i);
         settle(300);
         snprintf(path, sizeof(path), "%s/ui-%s%s.bmp", out, prefix, names[i]);
         dump_bmp(path);

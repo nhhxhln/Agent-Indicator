@@ -37,7 +37,7 @@
 #define BOARD_I2C_SDA       38
 #define BOARD_I2C_SCL       39
 #define BOARD_I2C_FREQ_HZ   400000
-#define I2C_ADDR_CST820     0x15
+#define I2C_ADDR_CST836U     0x15
 #define I2C_ADDR_TCA9554    0x20
 #define I2C_ADDR_INA226     0x40
 #define I2C_ADDR_MP2760     0x5C

@@ -1,7 +1,7 @@
 /* LCD 子系统:ST7701 初始化链路(docs/04 §3)
  *   TCA9554 复位 → 3-wire SPI 写初始化序列(SCL 借 PCLK 线、SDA 借 G0 线、
  *   CS 在扩展器 P5,esp_lcd_panel_io_additions 实现)→ 引脚移交 LCD_CAM RGB565
- *   → esp_lvgl_port 挂 LVGL9 + CST820 触摸 → 背光。
+ *   → esp_lvgl_port 挂 LVGL9 + CST836U 触摸 → 背光。
  * 字体:若存在 /spiffs/fonts/ui.ttf 则用 TinyTTF 加载(otf 同样支持),
  *   否则回落内置 Montserrat。 */
 #include "ui/display.h"
@@ -120,7 +120,7 @@ static esp_err_t panel_init(void)
     /* 2. RGB565 面板 */
     esp_lcd_rgb_panel_config_t rgb_cfg = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
-        .timings = ST7701_480_480_PANEL_60HZ_RGB_TIMING(), /* TODO: 按屏厂参数核对 */
+        .timings = ST7701_480_480_PANEL_60HZ_RGB_TIMING(), /* pclk 下方覆盖为 20MHz */
         .data_width = 16,
         .bits_per_pixel = 16,
         .num_fbs = 2,
@@ -139,6 +139,7 @@ static esp_err_t panel_init(void)
         },
         .flags = { .fb_in_psram = 1 },
     };
+    rgb_cfg.timings.pclk_hz = 20 * 1000 * 1000; /* 20MHz 起步,屏稳定后可上调 */
     st7701_vendor_config_t vendor = {
         .rgb_config = &rgb_cfg,
         .init_cmds = NULL, /* 屏厂序列拿到后替换,先用组件默认 */
@@ -175,7 +176,7 @@ static esp_err_t panel_init(void)
     s_disp = lvgl_port_add_disp_rgb(&disp_cfg, &rgb_port_cfg);
     ESP_RETURN_ON_FALSE(s_disp, ESP_FAIL, TAG, "add disp");
 
-    /* 4. 触摸(CST820 用 cst816s 驱动,轮询) */
+    /* 4. 触摸(CST836U 用 cst816s 驱动,轮询) */
     esp_lcd_panel_io_handle_t tp_io;
     esp_lcd_panel_io_i2c_config_t tp_io_cfg = ESP_LCD_TOUCH_IO_I2C_CST816S_CONFIG();
     if (esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)(uintptr_t)i2c_bus_port(),
@@ -246,7 +247,7 @@ static int theme_load(void)
 static void devices_populate(void)
 {
     ui_devices_set(UI_DEV_EXPANDER, io_expander() != NULL, "0x20");
-    ui_devices_set(UI_DEV_TOUCH, i2c_probe(I2C_ADDR_CST820), "0x15");
+    ui_devices_set(UI_DEV_TOUCH, i2c_probe(I2C_ADDR_CST836U), "0x15");
     ui_devices_set(UI_DEV_IMU, qmi8658_present_c(), "0x6B");
     ui_devices_set(UI_DEV_CODEC, audio_ready_c(), "I2S");
     ui_devices_set(UI_DEV_INA226, i2c_probe(I2C_ADDR_INA226), "0x40");

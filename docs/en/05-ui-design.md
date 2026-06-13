@@ -5,9 +5,17 @@
 > pixel-identical to the firmware rendering — both compile the same sources
 > in `firmware/main/ui/screens/`.
 
-Structure: 480×480 dark theme, 6 bottom tabs (LVGL tabview), touch to switch.
-All data-update entry points (`ui_*_set`) are internally locked and callable
-from any task.
+**⚠ Round-screen layout**: the LCD is a **480×480 circular** active area (the inscribed
+circle; corners are invisible), so the UI **does not use lv_tabview** (its full-width tab
+bar and edge-hugging card corners would be clipped). Instead:
+
+- content is confined to a **centered safe area** (320×300, inside the R240 circle), with a
+  66px margin at the top;
+- navigation is a **bottom-centered pill** (290 wide, within the bottom chord), 6 icons;
+- screenshots are masked to a circle to show the real visible area (outside = bezel).
+
+All data-update entry points (`ui_*_set`) are internally locked and callable from any
+task; Light/Dark themes are supported (§7).
 
 ## 1. Home — status & I/O stream
 
@@ -48,7 +56,7 @@ Four zones, top to bottom:
    | Device | Addr | Note |
    |---|---|---|
    | TCA9554 IO expander | 0x20 | slow-control expander |
-   | CST820 touch | 0x15 | cap touch |
+   | CST836U touch | 0x15 | cap touch |
    | QMI8658C IMU | 0x6B | 6-axis |
    | ES8311 codec | I2S | audio |
    | INA226 monitor | 0x40 | power telemetry |

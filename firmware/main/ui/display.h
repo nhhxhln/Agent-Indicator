@@ -1,4 +1,4 @@
-/* LCD(ST7701 RGB + CST820)+ LVGL9。
+/* LCD(ST7701 RGB + CST836U)+ LVGL9。
  * 初始化失败(裸开发板无屏)时系统继续无头运行,display_ready() 返回 false,
  * 文本流降级为日志输出;各 case 据此选择 GUI 或日志可视化。 */
 #pragma once

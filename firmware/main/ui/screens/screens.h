@@ -37,8 +37,8 @@ void ui_screens_set_theme(int dark);
 int  ui_screens_is_dark(void);
 /* 在 create 前设置 UI 字体(如 TTF);NULL = 内置默认 */
 void ui_set_font(const lv_font_t *font);
-/* 当前 tabview 根(重建后会变,需重新获取) */
-lv_obj_t *ui_screens_tabview(void);
+/* 切换到第 idx 页(0 Home/1 Lighting/2 Wi-Fi/3 Devices/4 Files/5 Music) */
+void ui_screens_goto(int idx);
 
 /* ---- Home ---- */
 void ui_home_set_state(const char *name, lv_color_t color);
@@ -54,7 +54,7 @@ void ui_wifi_add_network(const char *ssid, int rssi, bool secured);
 /* ---- Devices(行枚举与检测表对应) ---- */
 typedef enum {
     UI_DEV_EXPANDER = 0,  /* TCA9554 */
-    UI_DEV_TOUCH,         /* CST820 */
+    UI_DEV_TOUCH,         /* CST836U */
     UI_DEV_IMU,           /* QMI8658C */
     UI_DEV_CODEC,         /* ES8311 */
     UI_DEV_INA226,
