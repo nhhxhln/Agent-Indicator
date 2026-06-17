@@ -1,0 +1,10 @@
+# ESP-IDF 生成物(不入库;配置以 sdkconfig.defaults 为准)
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock
+*.orig
+
+# 打包归档
+*.tar.xz

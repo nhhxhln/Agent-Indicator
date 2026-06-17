@@ -1,0 +1,32 @@
+menu "Agent Indicator (Demo)"
+
+    config AGENTIND_WIFI_SSID
+        string "Wi-Fi SSID (PC AP)"
+        default "agentind-ap"
+
+    config AGENTIND_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default "agentind123"
+
+    config AGENTIND_MATRIX_TILES
+        int "Matrix tiles (1 = 8x8, 4 = 16x16)"
+        range 1 4
+        default 1
+
+    config AGENTIND_VLED_BUDGET_MA
+        int "VLED current budget (mA)"
+        default 4500
+
+    config AGENTIND_ENABLE_SD
+        bool "Enable on-board microSD"
+        default y
+        help
+            Demo:SD 用独立引脚(CLK4/CMD5/DAT6),默认启用;未插卡只报错不 panic。
+
+    config AGENTIND_ENABLE_CAN
+        bool "Enable CAN/TWAI"
+        default y
+        help
+            Demo:TWAI TX47/RX21,默认启用。
+
+endmenu

@@ -1,0 +1,33 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "app_state.c"
+        "notify.c"
+        "proto/proto.c"
+        "bus/i2c_bus.cpp"
+        "storage/storage.cpp"
+        "console/app_console.cpp"
+        "comm/comm_wifi.c"
+        "comm/comm_twai.c"
+        "comm/comm_usb.c"
+        "ui/led_engine.c"
+        "ui/display.c"
+        "ui/i18n.c"
+        "ui/screens/screens.c"
+        "ui/screens/screen_wifi.c"
+        "ui/screens/screen_devices.c"
+        "ui/screens/screen_files.c"
+        "ui/screens/screen_music.c"
+        "ui/screens/screen_light.c"
+        "audio/audio.cpp"
+        "power/power.c"
+        "drivers/qmi8658.cpp"
+        "drivers/sensors.cpp"
+        "drivers/wm8960.cpp"
+        "cases/case_can.cpp"
+        "cases/case_imu.cpp"
+        "cases/case_i2c.cpp"
+    INCLUDE_DIRS "."
+    REQUIRES driver esp_wifi esp_http_server nvs_flash esp_adc
+    PRIV_REQUIRES esp_timer console spiffs fatfs sdmmc vfs esp_lcd
+)

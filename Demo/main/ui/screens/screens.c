@@ -1,0 +1,266 @@
+#include "screens_priv.h"
+
+#include <stdio.h>
+#include <string.h>
+
+static const ui_host_api_t s_null_api; /* 全 NULL,调用前判空 */
+const ui_host_api_t *g_ui_api = &s_null_api;
+
+/* ---- 主题调色板(Light / Dark) ---- */
+int g_ui_dark = 1;
+typedef struct {
+    uint32_t bg, card, border, text, sub, area;
+} ui_palette_t;
+static const ui_palette_t PAL[2] = {
+    /* light */ { 0xeceef3, 0xffffff, 0xd2d6e0, 0x1c1c24, 0x6a7180, 0xf6f7fa },
+    /* dark  */ { 0x0a0a12, 0x16161f, 0x2a2a38, 0xe2e2ee, 0x8888aa, 0x101018 },
+};
+lv_color_t t_bg(void)     { return lv_color_hex(PAL[g_ui_dark].bg); }
+lv_color_t t_card(void)   { return lv_color_hex(PAL[g_ui_dark].card); }
+lv_color_t t_border(void) { return lv_color_hex(PAL[g_ui_dark].border); }
+lv_color_t t_text(void)   { return lv_color_hex(PAL[g_ui_dark].text); }
+lv_color_t t_sub(void)    { return lv_color_hex(PAL[g_ui_dark].sub); }
+lv_color_t t_area(void)   { return lv_color_hex(PAL[g_ui_dark].area); }
+
+const lv_font_t *g_ui_font = NULL; /* NULL = 用 LVGL 默认字体 */
+
+/* ---- Home 控件 ---- */
+static lv_obj_t *s_state_dot, *s_state_label;
+static lv_obj_t *s_textarea;
+static lv_obj_t *s_bar_session, *s_bar_limit, *s_ctx_arc, *s_ctx_label;
+
+lv_obj_t *ui_card(lv_obj_t *parent)
+{
+    lv_obj_t *c = lv_obj_create(parent);
+    lv_obj_set_style_bg_color(c, t_card(), 0);
+    lv_obj_set_style_border_color(c, t_border(), 0);
+    lv_obj_set_style_border_width(c, 1, 0);
+    lv_obj_set_style_radius(c, 10, 0);
+    lv_obj_set_style_pad_all(c, 10, 0);
+    return c;
+}
+
+void ui_tab_home_create(lv_obj_t *parent)
+{
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(parent, 8, 0);
+    lv_obj_set_style_pad_row(parent, 8, 0);
+
+    /* 顶栏:状态点 + 状态名 + context 圆环 */
+    lv_obj_t *top = ui_card(parent);
+    lv_obj_set_size(top, LV_PCT(100), 56);
+    lv_obj_set_flex_flow(top, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+
+    s_state_dot = lv_obj_create(top);
+    lv_obj_set_size(s_state_dot, 16, 16);
+    lv_obj_set_style_radius(s_state_dot, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(s_state_dot, lv_color_hex(0x444455), 0);
+    lv_obj_set_style_border_width(s_state_dot, 0, 0);
+
+    s_state_label = lv_label_create(top);
+    lv_label_set_text(s_state_label, "Offline");
+    lv_obj_set_style_text_color(s_state_label, t_text(), 0);
+    lv_obj_set_style_text_font(s_state_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_flex_grow(s_state_label, 1);
+    lv_obj_set_style_pad_left(s_state_label, 8, 0);
+
+    s_ctx_arc = lv_arc_create(top);
+    lv_obj_set_size(s_ctx_arc, 40, 40);
+    lv_arc_set_rotation(s_ctx_arc, 270);
+    lv_arc_set_bg_angles(s_ctx_arc, 0, 360);
+    lv_arc_set_value(s_ctx_arc, 0);
+    lv_obj_remove_style(s_ctx_arc, NULL, LV_PART_KNOB);
+    lv_obj_remove_flag(s_ctx_arc, LV_OBJ_FLAG_CLICKABLE);
+    s_ctx_label = lv_label_create(s_ctx_arc);
+    lv_label_set_text(s_ctx_label, "ctx");
+    lv_obj_set_style_text_font(s_ctx_label, &lv_font_montserrat_14, 0);
+    lv_obj_center(s_ctx_label);
+
+    /* 用量条 ×2 */
+    lv_obj_t *usage = ui_card(parent);
+    lv_obj_set_size(usage, LV_PCT(100), 64);
+    lv_obj_set_flex_flow(usage, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(usage, 8, 0);
+    s_bar_session = lv_bar_create(usage);
+    lv_obj_set_size(s_bar_session, LV_PCT(100), 12);
+    s_bar_limit = lv_bar_create(usage);
+    lv_obj_set_size(s_bar_limit, LV_PCT(100), 12);
+    lv_obj_set_style_bg_color(s_bar_limit, t_area(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_bar_limit, lv_color_hex(0xcc8800), LV_PART_INDICATOR);
+
+    /* I/O 文本流 */
+    s_textarea = lv_textarea_create(parent);
+    lv_obj_set_width(s_textarea, LV_PCT(100));
+    lv_obj_set_flex_grow(s_textarea, 1);
+    lv_obj_set_style_bg_color(s_textarea, t_area(), 0);
+    lv_obj_set_style_text_color(s_textarea, t_text(), 0);
+    if (g_ui_font) lv_obj_set_style_text_font(s_textarea, g_ui_font, 0);
+    lv_textarea_set_max_length(s_textarea, 4096);
+}
+
+void ui_home_set_state(const char *name, lv_color_t color)
+{
+    ui_lock();
+    if (!s_state_label) goto out;
+    lv_label_set_text(s_state_label, name);
+    lv_obj_set_style_bg_color(s_state_dot, color, 0);
+out:
+    ui_unlock();
+}
+
+void ui_home_append_text(const char *txt)
+{
+    ui_lock();
+    if (s_textarea) lv_textarea_add_text(s_textarea, txt);
+    ui_unlock();
+}
+
+void ui_home_set_usage(int session_pct, int limit_pct)
+{
+    ui_lock();
+    if (!s_bar_session) goto out;
+    if (session_pct >= 0) lv_bar_set_value(s_bar_session, session_pct, LV_ANIM_ON);
+    if (limit_pct >= 0) lv_bar_set_value(s_bar_limit, limit_pct, LV_ANIM_ON);
+out:
+    ui_unlock();
+}
+
+void ui_home_set_context(int used_k, int total_k)
+{
+    ui_lock();
+    if (!s_ctx_arc || total_k <= 0) goto out;
+    lv_arc_set_value(s_ctx_arc, used_k * 100 / total_k);
+    lv_label_set_text_fmt(s_ctx_label, "%dk", used_k);
+out:
+    ui_unlock();
+}
+
+/* ---- 圆形屏导航(480 圆,内容限制在安全区,底部居中 pill)----
+ * 不用 lv_tabview:其全宽底栏与贴边内容在圆形面板上四角会被裁切。
+ * 安全区:内容容器 320×300 居中于上方,导航 pill 宽 290 居中于底部弦内。 */
+#define UI_PAGES 6
+static lv_obj_t *s_pages[UI_PAGES];
+static lv_obj_t *s_nav_btn[UI_PAGES];
+static int s_cur;
+
+static void show_page(int i)
+{
+    if (i < 0 || i >= UI_PAGES) return;
+    for (int k = 0; k < UI_PAGES; k++) {
+        if (k == i) lv_obj_remove_flag(s_pages[k], LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(s_pages[k], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_bg_opa(s_nav_btn[k], k == i ? LV_OPA_COVER : LV_OPA_0, 0);
+    }
+    s_cur = i;
+}
+
+void ui_screens_goto(int idx) { show_page(idx); }
+
+static void nav_cb(lv_event_t *e)
+{
+    show_page((int)(intptr_t)lv_event_get_user_data(e));
+}
+
+/* 建一页:全屏底板 + 居中安全区容器,返回安全区供各页填充 */
+static lv_obj_t *make_page(void)
+{
+    lv_obj_t *p = lv_obj_create(lv_screen_active());
+    lv_obj_set_size(p, LV_PCT(100), LV_PCT(100)); /* = 屏分辨率(240/480 自适应) */
+    lv_obj_set_pos(p, 0, 0);
+    lv_obj_set_style_bg_color(p, t_bg(), 0);
+    lv_obj_set_style_border_width(p, 0, 0);
+    lv_obj_set_style_radius(p, 0, 0);
+    lv_obj_set_style_pad_all(p, 0, 0);
+    lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *safe = lv_obj_create(p);
+    lv_obj_set_size(safe, 200, 188);            /* GC9A01 240 圆:居中安全区 */
+    lv_obj_align(safe, LV_ALIGN_TOP_MID, 0, 22); /* 顶部留圆窄区 */
+    lv_obj_set_style_bg_opa(safe, LV_OPA_0, 0);
+    lv_obj_set_style_border_width(safe, 0, 0);
+    lv_obj_set_style_pad_all(safe, 2, 0);
+    return safe;
+}
+
+static void build(void)
+{
+    /* 内置控件(默认 label/button/slider)跟随 Light/Dark 主题 */
+    lv_display_t *disp = lv_display_get_default();
+    lv_theme_t *th = lv_theme_default_init(
+        disp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_CYAN),
+        g_ui_dark, g_ui_font ? g_ui_font : LV_FONT_DEFAULT);
+    lv_display_set_theme(disp, th);
+
+    lv_obj_t *scr = lv_screen_active();
+    lv_obj_set_style_bg_color(scr, lv_color_black(), 0); /* 圆外不可见 */
+    lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+
+    typedef void (*creator_t)(lv_obj_t *);
+    static const creator_t creators[UI_PAGES] = {
+        ui_tab_home_create, ui_tab_light_create, ui_tab_wifi_create,
+        ui_tab_devices_create, ui_tab_files_create, ui_tab_music_create,
+    };
+    for (int i = 0; i < UI_PAGES; i++) {
+        lv_obj_t *safe = make_page();
+        s_pages[i] = lv_obj_get_parent(safe);
+        creators[i](safe);
+    }
+
+    /* 底部 pill 导航(宽 290 @ 底部弦内) */
+    static const char *icons[UI_PAGES] = {
+        LV_SYMBOL_HOME, LV_SYMBOL_TINT, LV_SYMBOL_WIFI,
+        LV_SYMBOL_SETTINGS, LV_SYMBOL_DIRECTORY, LV_SYMBOL_AUDIO,
+    };
+    lv_obj_t *nav = lv_obj_create(scr);
+    lv_obj_set_size(nav, 162, 34);
+    lv_obj_align(nav, LV_ALIGN_BOTTOM_MID, 0, -6);
+    lv_obj_set_style_radius(nav, 17, 0);
+    lv_obj_set_style_bg_color(nav, t_card(), 0);
+    lv_obj_set_style_border_color(nav, t_border(), 0);
+    lv_obj_set_style_border_width(nav, 1, 0);
+    lv_obj_set_style_pad_hor(nav, 4, 0);
+    lv_obj_set_flex_flow(nav, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(nav, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(nav, LV_OBJ_FLAG_SCROLLABLE);
+    for (int i = 0; i < UI_PAGES; i++) {
+        lv_obj_t *b = lv_button_create(nav);
+        lv_obj_set_size(b, 24, 24);
+        lv_obj_set_style_radius(b, 12, 0);
+        lv_obj_set_style_shadow_width(b, 0, 0);
+        lv_obj_t *l = lv_label_create(b);
+        lv_label_set_text(l, icons[i]);
+        lv_obj_center(l);
+        lv_obj_add_event_cb(b, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        s_nav_btn[i] = b;
+    }
+    show_page(0);
+}
+
+lv_obj_t *ui_screens_create(const ui_host_api_t *api, int dark)
+{
+    if (api) g_ui_api = api;
+    g_ui_dark = dark ? 1 : 0;
+    build();
+    return lv_screen_active();
+}
+
+int ui_screens_is_dark(void) { return g_ui_dark; }
+
+void ui_set_font(const lv_font_t *font) { g_ui_font = font; }
+
+void ui_screens_set_theme(int dark)
+{
+    dark = dark ? 1 : 0;
+    if (dark == g_ui_dark) return;
+    ui_lock();
+    g_ui_dark = dark;
+    lv_obj_clean(lv_layer_top());     /* Wi-Fi 密码键盘浮层 */
+    lv_obj_clean(lv_screen_active()); /* 销毁旧 UI */
+    build();
+    ui_unlock();
+    if (g_ui_api->theme_persist) g_ui_api->theme_persist(dark);
+    if (g_ui_api->on_rebuild) g_ui_api->on_rebuild(); /* 宿主重新填数据 */
+}

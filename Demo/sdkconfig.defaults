@@ -1,0 +1,30 @@
+# Demo 最小可移植默认配置(进 git)。换机器/全新 checkout:
+#   rm -rf build sdkconfig && idf.py set-target esp32s3 build
+# 只列「非默认且必需」项;其余沿用 IDF/Kconfig 默认(SD/CAN/MATRIX_TILES、CPU 160MHz 等本就是默认)。
+
+CONFIG_IDF_TARGET="esp32s3"
+
+# 16MB flash(partitions.csv 的 storage 到 ~14.7MB;默认 2MB 装不下)
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+
+# 8MB 八线 PSRAM(N16R8;LVGL/大缓冲依赖,默认不启用)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+# 自定义分区表(FILENAME 默认即 partitions.csv)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+
+# 控制台/日志走 USB-Serial-JTAG(GPIO19/20),默认是 UART0
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# HTTP Server WebSocket:comm_wifi.c 的 /ws 编译必需(默认关)
+CONFIG_HTTPD_WS_SUPPORT=y
+
+# LVGL 必须用 CLIB malloc(内置 TLSF 池会 OOM 死循环);UI 用到 14/16/20 号字
+CONFIG_LV_USE_CLIB_MALLOC=y
+CONFIG_LV_FONT_MONTSERRAT_16=y
+CONFIG_LV_FONT_MONTSERRAT_20=y
+
+# 重新启用 Wi-Fi 时再加这条(否则 station static buffer OOM):
+# CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y

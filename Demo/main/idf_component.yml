@@ -1,0 +1,10 @@
+dependencies:
+  idf: ">=5.2"
+  espressif/led_strip: "^2.5"
+  espressif/mdns: "^1.2"
+  espressif/esp_lcd_gc9a01: "^2.0"           # GC9A01 SPI 圆屏
+  espressif/esp_lcd_touch_cst816s: "^1.0"    # 触摸可选(GC9A01 触摸版 CST816/CST836U)
+  espressif/esp_io_expander_tca9554: "^2.0"  # v2:i2c_master bus handle(在位才用)
+  espressif/esp_tinyusb: "^1.4"
+  lvgl/lvgl: "^9.1"
+  espressif/esp_lvgl_port: "^2.3"
