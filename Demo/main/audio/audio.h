@@ -14,6 +14,7 @@ void audio_play_tone(uint8_t tone_id); /* 0 done / 1 attention / 2 error / 3 boo
 const char *audio_codec_name(void);    /* "ES8311" / "WM8960" / "none" */
 void audio_set_volume(int vol);        /* 0-100,分发到在位 codec */
 int audio_get_volume(void);            /* 当前音量影子值(WM8960 只写不可读) */
+esp_err_t audio_reinit(void);          /* 重新初始化 codec(热复位无声时恢复) */
 bool audio_ready_c(void);
 
 #ifdef __cplusplus

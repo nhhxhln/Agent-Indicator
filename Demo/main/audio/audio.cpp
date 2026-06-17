@@ -450,6 +450,13 @@ int cmd_scale(int argc, char **argv)
     return 0;
 }
 
+int cmd_reinit(int argc, char **argv)
+{
+    esp_err_t e = audio_reinit();
+    printf("audio reinit: %s\n", esp_err_to_name(e));
+    return e == ESP_OK ? 0 : 1;
+}
+
 int cmd_vol(int argc, char **argv)
 {
     if (!s_ready) { printf("audio not ready\n"); return 1; }
@@ -511,6 +518,7 @@ extern "C" void case_audio_register(void)
         { "audio_vol", "audio_vol <0-100>", nullptr, cmd_vol, nullptr },
         { "tone", "tone <0-9> - 提示音(done/success/notify/warning/...)", nullptr, cmd_tone, nullptr },
         { "wave", "wave <sine|square|tri|saw> <freq> [ms] [amp] [duty] - 波形发生器", nullptr, cmd_wave, nullptr },
+        { "reinit", "reinit - 重新初始化 WM8960(热复位无声时恢复)", nullptr, cmd_reinit, nullptr },
         { "wmreg", "wmreg <reg> <val> - 写 WM8960 寄存器(hex,调试)", nullptr, cmd_wmreg, nullptr },
         { "swap", "swap [on|off] - TX 16bit 字节序翻转(测大小端)", nullptr, cmd_swap, nullptr },
         { "scale", "scale [0-100] - 输出数字电平缩放%(测削顶)", nullptr, cmd_scale, nullptr },
@@ -540,13 +548,28 @@ extern "C" void audio_set_volume(int vol)
 
 extern "C" int audio_get_volume(void) { return s_volume; }
 
+/* 重新初始化 codec(重跑 WM8960 复位+PLL+寄存器),热复位偶发无声时手动恢复。
+ * I2S 通道不动(主时钟一直在跑),只重配 codec。 */
+extern "C" esp_err_t audio_reinit(void)
+{
+    if (!wm8960_probe()) return ESP_ERR_NOT_FOUND;
+    esp_err_t e = wm8960_init(kSampleRate);
+    if (e == ESP_OK) {
+        s_codec_kind = CODEC_WM8960;
+        s_ready = true;
+        audio_set_volume(s_volume);
+    }
+    return e;
+}
+
 extern "C" esp_err_t audio_start(void)
 {
     s_tx_mtx = xSemaphoreCreateMutex();
     s_tone_q = xQueueCreate(4, sizeof(uint8_t));
 
-    /* I2S 全双工:BCLK 作 codec 时钟源,无 MCLK 线(docs/01 §4.3) */
-    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
+    /* WM8960 当 I2S 主(用板载 24MHz 晶振产生 BCLK/WS),ESP32 当从 → 单一时钟域,
+     * 消除"ESP32 内部时钟 vs codec 晶振"不相干导致的间歇无声。 */
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_SLAVE);
     chan_cfg.auto_clear = true; /* TX 欠载自动补零,否则会重播上一块 DMA 缓冲(听起来循环播放) */
     ESP_RETURN_ON_ERROR(i2s_new_channel(&chan_cfg, &s_tx, &s_rx), TAG, "chan");
 

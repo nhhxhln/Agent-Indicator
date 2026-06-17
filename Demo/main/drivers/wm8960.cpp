@@ -37,10 +37,9 @@ esp_err_t wm8960_write_reg(uint8_t reg, uint16_t val) { return wr(reg, val); }
 esp_err_t wm8960_init(int sample_rate)
 {
     if (!s_present) return ESP_ERR_NOT_FOUND;
-#if BOARD_I2S_MCLK < 0
-    ESP_LOGW(TAG, "BOARD_I2S_MCLK 未接,WM8960 需要 MCLK,可能无声(见 board.h)");
-#endif
-    (void)sample_rate; /* SYSCLK 直接取 MCLK = 256*fs,无需分频 */
+    /* MCLK 来自模块板载 24MHz 晶振(非 ESP32);用内部 PLL 锁 12.288MHz SYSCLK,
+     * WM8960 当 I2S 主自行产生 BCLK/LRCLK。sample_rate 固定 48k(PLL 值硬编码)。 */
+    (void)sample_rate;
 
     /* 标准初始化序列(16bit I2S 从机,DAC→HP(LOUT1/ROUT1)+SPK,LINPUT1→ADC)。
      * 寄存器分配与时序对照 Waveshare WM8960 STM32 参考工程
@@ -48,20 +47,24 @@ esp_err_t wm8960_init(int sample_rate)
     static const struct { uint8_t reg; uint16_t val; } SEQ[] = {
         { 0x0F, 0xFFFF }, /* R15 软复位(任意值触发) */
         { 0x19, 0x00FE }, /* R25 PWR1: VMID=50k,VREF,AINL/R,ADCL/R,MICB(录放都开) */
-        { 0x1A, 0x01F9 }, /* R26 PWR2: DACL/R,LOUT1,ROUT1,SPKL,SPKR + PLLEN(bit0) */
+        { 0x1A, 0x01F8 }, /* R26 PWR2: DACL/R,LOUT1,ROUT1,SPKL,SPKR(暂不开 PLLEN) */
         { 0x2F, 0x003C }, /* R47 PWR3: LMIC,RMIC,LOMIX,ROMIX */
-        /* ★ 时钟来自板载 24MHz 晶振(MCLK 不来自 ESP32!),必须用内部 PLL 锁出
-         * 12.288MHz SYSCLK 才能跑 48k。24MHz→12.288M:f2=49.152M×... N=8,
-         * pre_div=1,K=0x3126E9(与 Linux 内核 wm8960 pll_factors 算法一致)。
-         * 之前 R4=0 把 SYSCLK 当 24MHz,DAC 实际跑 93.75kHz → 全是破音的真因。 */
+        /* ★ 时钟来自板载 24MHz 晶振(MCLK 不来自 ESP32!),用内部 PLL 锁出 12.288MHz。
+         * 24MHz→12.288M:N=8,pre_div=1,K=0x3126E9(与 Linux 内核 pll_factors 一致)。
+         * 顺序按内核驱动:此时 PLL 未使能、CLKSEL 仍是 MCLK(R15 复位后默认),先写分频,
+         * 再开 PLLEN 等锁定,最后切 CLKSEL=PLL。否则热复位(flash 只复位 ESP32、
+         * WM8960 不掉电)时 PLL 重锁不稳 → 偶发无声;冷启动才正常。 */
         { 0x34, 0x0038 }, /* R52 PLL1: SDM=1,PLLPRESCALE=1,PLLN=8 */
         { 0x35, 0x0031 }, /* R53 PLL2: K[23:16]=0x31 */
         { 0x36, 0x0026 }, /* R54 PLL3: K[15:8]=0x26 */
-        { 0x37, 0x00E9 }, /* R55 PLL4: K[7:0]=0xE9(写完等 PLL 锁定) */
+        { 0x37, 0x00E9 }, /* R55 PLL4: K[7:0]=0xE9 */
+        { 0x1A, 0x01F9 }, /* R26 再写:加 PLLEN(bit0)使能 PLL(写后等锁定) */
         { 0x04, 0x0005 }, /* R4 CLOCKING1: CLKSEL=PLL,SYSCLKDIV=÷2,DAC/ADC=SYSCLK/256→48k */
-        { 0x08, 0x01C0 }, /* R8 CLOCKING2: DCLKDIV=÷16 → 12.288M/16=768kHz(Class-D 理想) */
+        /* R8 CLOCKING2: DCLKDIV=÷16(768kHz Class-D)+ BCLKDIV=0b0111=÷8。
+         * WM8960 主模式:BCLK=SYSCLK/8=12.288M/8=1.536M,LRCLK=BCLK/32=48k。 */
+        { 0x08, 0x01C7 }, /* DCLKDIV÷16 | BCLKDIV÷8 */
         { 0x05, 0x0000 }, /* R5 DACCTL1: 取消静音(DAC 不能 mute) */
-        { 0x07, 0x0002 }, /* R7 IFACE1: I2S,16bit,从机 */
+        { 0x07, 0x0042 }, /* R7 IFACE1: I2S,16bit,MS=1(WM8960 当主,出 BCLK/LRCLK) */
         /* DAC 数字音量 0dB */
         { 0x0A, 0x01FF }, { 0x0B, 0x01FF }, /* R10/R11 DACL/R vol (+update) */
         /* 输出混音:DAC → LOMIX/ROMIX */
@@ -87,7 +90,8 @@ esp_err_t wm8960_init(int sample_rate)
     for (size_t i = 0; i < sizeof(SEQ) / sizeof(SEQ[0]); i++) {
         ESP_RETURN_ON_ERROR(wr(SEQ[i].reg, SEQ[i].val), TAG, "wr 0x%02x", SEQ[i].reg);
         if (SEQ[i].reg == 0x0F) vTaskDelay(pdMS_TO_TICKS(10)); /* 复位后稳定 */
-        if (SEQ[i].reg == 0x37) vTaskDelay(pdMS_TO_TICKS(10)); /* 等 PLL 锁定再切 CLKSEL */
+        if (SEQ[i].reg == 0x1A && SEQ[i].val == 0x01F9)
+            vTaskDelay(pdMS_TO_TICKS(20)); /* 使能 PLLEN 后等锁定,再切 CLKSEL */
     }
     ESP_LOGI(TAG, "wm8960 ready @%dHz", sample_rate);
     return ESP_OK;

@@ -61,7 +61,7 @@ static rgb_t s_fx_color[2] = { { 0, 140, 255 }, { 0, 140, 255 } };
 static uint8_t s_fx_speed[2] = { 40, 40 }; /* 1-100 */
 
 /* ---- 通知爆闪 ---- */
-#define FLASH_HALF 7 /* 每个亮/灭半周期帧数(@60fps ≈ 117ms) */
+#define FLASH_HALF 3 /* 每个亮/灭半周期帧数(@60fps = 50ms,更短促) */
 static volatile int s_flash_ticks = 0;
 static rgb_t s_flash_color = { 255, 255, 255 };
 

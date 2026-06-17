@@ -48,12 +48,13 @@
 #define BOARD_USAGE_LEDS        20
 #define BOARD_VU_LEDS           64
 
-/* ---- I2S(默认 WM8960,需要 MCLK)---- */
-#define BOARD_I2S_MCLK      1
-#define BOARD_I2S_BCLK      2
-#define BOARD_I2S_WS        42   /* LRCK */
-#define BOARD_I2S_DOUT      40   /* ESP 发送 → codec SDIN(播放) */
-#define BOARD_I2S_DIN       41   /* codec 输出 → ESP 接收(录音) */
+/* ---- I2S(WM8960 当主:BCLK/WS 由 codec 用板载 24MHz 晶振产生,ESP32 当从)----
+ * MCLK 来自模块板载 24MHz 有源晶振(原理图 XTAL1,EN 常开),ESP32 不输出 MCLK。 */
+#define BOARD_I2S_MCLK      (-1)  /* 不用:codec 自带晶振,ESP32 别驱动 MCLK 以免争用 */
+#define BOARD_I2S_BCLK      2     /* WM8960 主:此脚为输入(收 codec BCLK) */
+#define BOARD_I2S_WS        42    /* LRCK,同为输入 */
+#define BOARD_I2S_DOUT      40    /* ESP 发送 → codec SDIN(播放) */
+#define BOARD_I2S_DIN       41    /* codec 输出 → ESP 接收(录音) */
 
 /* ---- SDMMC 1 线 ---- */
 #define BOARD_SD_CLK        4
