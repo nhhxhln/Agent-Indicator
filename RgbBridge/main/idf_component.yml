@@ -1,0 +1,6 @@
+dependencies:
+  idf: ">=5.2"
+  # ST7701 面板(3-wire SPI 初始化 + RGB 像素)
+  espressif/esp_lcd_st7701: "^1.0.0"
+  # 3 线 SPI 面板 IO(esp_lcd_panel_io_3wire_spi)
+  espressif/esp_lcd_panel_io_additions: "^1.0.0"

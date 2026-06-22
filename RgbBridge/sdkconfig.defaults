@@ -1,0 +1,19 @@
+# RgbBridge 最小可移植默认配置。换机:rm -rf build sdkconfig && idf.py set-target esp32s3 build
+CONFIG_IDF_TARGET="esp32s3"
+
+# Flash(单 app 足够;桥片代码很小)
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+
+# 八线 PSRAM:RGB 帧缓冲(480×480×2≈460KB)+ 双缓冲必须放 PSRAM
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+# RGB panel 的帧缓冲走 PSRAM,需要更高带宽:允许 80M + XIP
+CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
+CONFIG_SPIRAM_RODATA=y
+
+# 控制台/日志走 USB-Serial-JTAG(19/20)
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# LCD RGB 需要较大主频
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
